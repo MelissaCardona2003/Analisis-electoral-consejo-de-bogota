@@ -1,0 +1,32 @@
+lista_id,votos_candidato,votos_lista,votos,familia_id,anio,nombre,curules_repartidora,curul_oposicion,votos_para_otra_curul,colchon_ultima_curul,supera_umbral
+ada,6133,827,6960,otros,2019,Alianza Democrática Amplia,0,0,40242,0,False
+asi,13125,2560,15685,otros,2019,Alianza Social Independiente,0,0,31517,0,False
+av,431898,138041,569939,alianza_verde,2019,Alianza Verde,12,0,43675,3975,True
+bogota_para_la_gente,74549,33584,108133,nuevo_liberalismo,2019,Bogotá para la Gente,2,1,33471,13805,True
+cd,198531,62892,261423,centro_democratico,2019,Centro Democrático,5,0,21784,25605,True
+cjl,0,101604,101604,conservador_cjl,2019,Colombia Justa Libres,2,0,40000,7276,True
+colombia_humana,0,188804,188804,pacto_historico,2019,Colombia Humana–UP–MAIS,4,0,47202,149,True
+colombia_renaciente,0,25057,25057,otros,2019,Colombia Renaciente,0,0,22145,0,False
+conservador,94829,7299,102128,conservador_cjl,2019,Partido Conservador,2,0,39476,7800,True
+cr,221145,14673,235818,cr_mira_u,2019,Cambio Radical,4,0,188,47163,True
+farc,18029,7746,25775,pacto_historico,2019,FARC (hoy Comunes),0,0,21427,0,False
+la_u,72869,7336,80205,cr_mira_u,2019,Partido de la U,1,0,14198,33041,True
+liberal,297605,34189,331794,liberal,2019,Partido Liberal,7,0,45815,1648,True
+mira,75852,15410,91262,cr_mira_u,2019,MIRA,1,0,3141,44098,True
+polo,160062,31565,191627,pacto_historico,2019,Polo Democrático Alternativo,4,0,44379,2972,True
+pre,11019,1741,12760,otros,2019,Reivindicación Étnica (PRE),0,0,34442,0,False
+aico,3321,1647,4968,otros,2023,AICO,0,0,44514,0,False
+av,366111,54055,420166,alianza_verde,2023,Alianza Verde,8,0,25164,38362,True
+bogota_mas_fuerte,48075,4414,52489,salvacion_nacional,2023,Bogotá Más Fuerte,1,0,46474,4763,True
+cd,291687,68090,359777,centro_democratico,2023,Centro Democrático,7,0,36072,25698,True
+conservador_cjl,76494,9131,85625,conservador_cjl,2023,Conservador–Colombia Justa Libres,1,0,13338,37899,True
+cr_mira_u,200514,16460,216974,cr_mira_u,2023,Cambio Radical–MIRA–La U,4,0,30432,26072,True
+creemos,0,5207,5207,otros,2023,Creemos,0,0,44275,0,False
+dignidad_compromiso,26673,5293,31966,otros,2023,Dignidad & Compromiso,0,0,17516,0,True
+esperanza_democratica,13568,3460,17028,otros,2023,Esperanza Democrática,0,0,32454,0,False
+fuerza_ciudadana,12794,3566,16360,otros,2023,Fuerza Ciudadana,0,0,33122,0,False
+lara,122333,16411,138744,otros,2023,LaRA Bogotá,2,0,9700,43293,True
+liberal,261728,35158,296886,liberal,2023,Partido Liberal,6,0,49482,10533,True
+liga,0,4924,4924,otros,2023,Liga de Gobernantes Anticorrupción,0,0,44558,0,False
+nuevo_liberalismo,276694,127705,404399,nuevo_liberalismo,2023,Nuevo Liberalismo en Marcha,8,0,40931,22595,True
+pacto_historico,0,381804,381804,pacto_historico,2023,Pacto Histórico,7,0,14045,47725,True

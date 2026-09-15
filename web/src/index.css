@@ -1,0 +1,195 @@
+@import 'tailwindcss';
+
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+/* ── Tokens (claro) ─────────────────────────────────────────────── */
+:root {
+  color-scheme: light;
+  --plane: #f6f5f1;
+  --surface: #fcfcfb;
+  --surface-2: #f0efea;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --muted: #7c7a74;
+  --hairline: #e1e0d9;
+  --axis: #c3c2b7;
+  --ring: rgba(11, 11, 11, 0.1);
+  --shadow: 0 1px 2px rgba(11, 11, 11, 0.04), 0 8px 24px -12px rgba(11, 11, 11, 0.12);
+  --good: #006300;
+  --critical: #c33232;
+
+  /* familias políticas — paleta validada (scripts/validate_palette.js, modo claro) */
+  --fam-pacto_historico: #e87ba4;
+  --fam-alianza_verde: #008300;
+  --fam-nuevo_liberalismo: #4a3aa7;
+  --fam-liberal: #e34948;
+  --fam-cr_mira_u: #1baf7a;
+  --fam-conservador_cjl: #eda100;
+  --fam-centro_democratico: #2a78d6;
+  --fam-salvacion_nacional: #eb6834;
+  --fam-otros: #8f8d86;
+  --fam-blanco: #c9c7bf;
+  --fam-oposicion: #0b0b0b;
+
+  /* secuencial azul y divergente azul↔rojo (punto medio gris) */
+  --seq-0: #eef4fc;
+  --seq-1: #cde2fb;
+  --seq-2: #9ec5f4;
+  --seq-3: #6da7ec;
+  --seq-4: #3987e5;
+  --seq-5: #256abf;
+  --seq-6: #184f95;
+  --seq-7: #0d366b;
+  --div-neg-3: #1c5cab;
+  --div-neg-2: #5598e7;
+  --div-neg-1: #b7d3f6;
+  --div-mid: #f0efec;
+  --div-pos-1: #f6c3bf;
+  --div-pos-2: #e97b77;
+  --div-pos-3: #b9302f;
+}
+
+/* ── Tokens (oscuro): pasos seleccionados, no invertidos ────────── */
+[data-theme='dark'] {
+  color-scheme: dark;
+  --plane: #0d0d0c;
+  --surface: #1a1a19;
+  --surface-2: #232321;
+  --ink: #f5f4ef;
+  --ink-2: #c3c2b7;
+  --muted: #95938b;
+  --hairline: #2c2c2a;
+  --axis: #45443f;
+  --ring: rgba(255, 255, 255, 0.1);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -12px rgba(0, 0, 0, 0.6);
+  --good: #0ca30c;
+  --critical: #e66767;
+
+  --fam-pacto_historico: #d55181;
+  --fam-alianza_verde: #008300;
+  --fam-nuevo_liberalismo: #9085e9;
+  --fam-liberal: #e66767;
+  --fam-cr_mira_u: #199e70;
+  --fam-conservador_cjl: #c98500;
+  --fam-centro_democratico: #3987e5;
+  --fam-salvacion_nacional: #d95926;
+  --fam-otros: #8f8d86;
+  --fam-blanco: #55544f;
+  --fam-oposicion: #f5f4ef;
+
+  --seq-0: #16263b;
+  --seq-1: #104281;
+  --seq-2: #184f95;
+  --seq-3: #1c5cab;
+  --seq-4: #2a78d6;
+  --seq-5: #5598e7;
+  --seq-6: #86b6ef;
+  --seq-7: #cde2fb;
+  --div-neg-3: #86b6ef;
+  --div-neg-2: #3987e5;
+  --div-neg-1: #1c4a80;
+  --div-mid: #383835;
+  --div-pos-1: #7a2b2a;
+  --div-pos-2: #d64f4e;
+  --div-pos-3: #f2a3a1;
+}
+
+@theme inline {
+  --color-plane: var(--plane);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-muted: var(--muted);
+  --color-hairline: var(--hairline);
+  --color-axis: var(--axis);
+  --color-good: var(--good);
+  --color-critical: var(--critical);
+  --font-sans: 'Inter Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Instrument Serif', 'Iowan Old Style', Georgia, serif;
+}
+
+/* ── Base ───────────────────────────────────────────────────────── */
+html {
+  background: var(--plane);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-feature-settings: 'cv11', 'ss01';
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  scroll-behavior: smooth;
+}
+body {
+  margin: 0;
+  min-height: 100svh;
+  background: var(--plane);
+}
+::selection {
+  background: color-mix(in oklab, var(--fam-centro_democratico) 25%, transparent);
+}
+:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+.display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+.card {
+  background: var(--surface);
+  border: 1px solid var(--ring);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+}
+.eyebrow {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--muted);
+}
+.hairline {
+  border-color: var(--hairline);
+}
+.link-underline {
+  text-decoration: underline;
+  text-decoration-color: var(--axis);
+  text-underline-offset: 3px;
+}
+.link-underline:hover {
+  text-decoration-color: var(--ink);
+}
+
+/* MapLibre: controles acordes al tema */
+.maplibregl-ctrl-group {
+  background: var(--surface) !important;
+  border: 1px solid var(--ring) !important;
+  box-shadow: var(--shadow) !important;
+}
+[data-theme='dark'] .maplibregl-ctrl-group button .maplibregl-ctrl-icon {
+  filter: invert(1);
+}
+.maplibregl-ctrl-attrib {
+  background: color-mix(in oklab, var(--surface) 80%, transparent) !important;
+  color: var(--muted) !important;
+  font-size: 10px !important;
+}
+.maplibregl-ctrl-attrib a {
+  color: var(--ink-2) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

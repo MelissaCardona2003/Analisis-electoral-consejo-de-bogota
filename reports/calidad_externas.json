@@ -1,0 +1,99 @@
+{
+  "presidente_2026": {
+    "archivo": "MMV_Presidente1V_2026/MMV_Presidente1V_2026/_ficheros_MMV_4_MMV_9999_ESCRUTINIO.csv",
+    "formato": "códigos ; + archivos básicos de ancho fijo",
+    "resumen": {
+      "presidente_2026": {
+        "puestos": 1083,
+        "votos_por_tipo": {
+          "blanco": 70220,
+          "candidato": 4019154,
+          "no_marcado": 5699,
+          "nulo": 33257
+        }
+      }
+    }
+  },
+  "presidente_2022": {
+    "archivo": "MMV_NACIONAL_PRESIDENTE_2022_1v.csv",
+    "codificacion": "cp1252",
+    "resumen": {
+      "presidente_2022": {
+        "puestos": 901,
+        "votos_por_tipo": {
+          "blanco": 73445,
+          "candidato": 3692144,
+          "no_marcado": 1410,
+          "nulo": 34014
+        }
+      }
+    }
+  },
+  "congreso_2022": {
+    "archivo": "MMV_CONGRESO_2022_BOGOTA/MMV_2022_16_BOGOTA.csv",
+    "codificacion": "utf-16",
+    "resumen": {
+      "camara_2022": {
+        "puestos": 899,
+        "votos_por_tipo": {
+          "blanco": 205091,
+          "candidato": 1244087,
+          "lista": 1173817,
+          "no_marcado": 28503,
+          "nulo": 75427
+        }
+      },
+      "senado_2022": {
+        "puestos": 899,
+        "votos_por_tipo": {
+          "blanco": 182882,
+          "candidato": 1278458,
+          "lista": 1256982,
+          "no_marcado": 30719,
+          "nulo": 70235
+        }
+      }
+    }
+  },
+  "presidente_2018": {
+    "archivo": "MMV_NACIONAL_PRESIDENTE_2018_1v.xlsx",
+    "formato": "xlsx",
+    "resumen": {
+      "presidente_2018": {
+        "puestos": 642,
+        "votos_por_tipo": {
+          "blanco": 55867,
+          "candidato": 3620350,
+          "no_marcado": 1885,
+          "nulo": 27858
+        }
+      }
+    }
+  },
+  "congreso_2026": {
+    "archivo": "mmvESCRUTINIOCongreso2026.zip!MMV_9999.csv",
+    "formato": "códigos ;",
+    "resumen": {
+      "camara_2026": {
+        "puestos": 1083,
+        "votos_por_tipo": {
+          "blanco": 134878,
+          "candidato": 1332306,
+          "lista": 1405473,
+          "no_marcado": 27016,
+          "nulo": 52464
+        }
+      },
+      "senado_2026": {
+        "puestos": 1083,
+        "votos_por_tipo": {
+          "blanco": 110681,
+          "candidato": 1095658,
+          "lista": 1798356,
+          "no_marcado": 27122,
+          "nulo": 48545
+        }
+      }
+    }
+  }
+}

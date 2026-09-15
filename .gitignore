@@ -1,0 +1,17 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Datos pesados o regenerables (ver README: pipeline.external y pipeline.ingest)
+data/external/
+data/interim/
+
+# Web
+web/node_modules/
+web/dist/
+web/public/maplibre/
+
+# Herramientas locales
+.claude/

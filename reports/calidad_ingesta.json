@@ -1,0 +1,156 @@
+{
+  "ingesta": {
+    "2019": {
+      "archivo": "MMV_TERRITORIALES2019_BOGOTA.zip!MMV_2019_16_BOGOTA DC.csv",
+      "filas_archivo": 2143883,
+      "votos_no_numericos": 0,
+      "votos_negativos": 0,
+      "textos_corregidos": {
+        "puesto_nombre: normalizados": 13,
+        "puesto_nombre: espacios_rotos_reparados": 0,
+        "partido_nombre: normalizados": 2,
+        "partido_nombre: espacios_rotos_reparados": 0,
+        "candidato_nombre: normalizados": 2,
+        "candidato_nombre: espacios_rotos_reparados": 0,
+        "comuna_nombre: normalizados": 1,
+        "comuna_nombre: espacios_rotos_reparados": 0
+      },
+      "localidad_inconsistente_con_zona": 0,
+      "comunas_originales": [
+        "01LOCALIDAD 1 USAQUEN",
+        "02LOCALIDAD 2 CHAPINERO",
+        "03LOCALIDAD 3 SANTA FE",
+        "04LOCALIDAD 4 SAN CRISTOBAL",
+        "05LOCALIDAD 5 USME",
+        "06LOCALIDAD 6 TUNJUELITO",
+        "07LOCALIDAD 7 BOSA",
+        "08LOCALIDAD  8 KENNEDY",
+        "09LOCALIDAD 9 FONTIBON",
+        "10LOCALIDAD 10 ENGATIVA",
+        "11LOCALIDAD 11 SUBA",
+        "12LOCALIDAD 12 BARRIOS UNIDOS",
+        "13LOCALIDAD 13 TEUSAQUILLO",
+        "14LOCALIDAD 14 MARTIRES",
+        "15LOCALIDAD 15 ANTONIO NARIÑO",
+        "16LOCALIDAD 16 PUENTE ARANDA",
+        "17LOCALIDAD 17 CANDELARIA",
+        "18LOCALIDAD 18 RAFAEL URIBE URIB",
+        "19LOCALIDAD 19 CIUDAD BOLIVAR",
+        "20LOCALIDAD 20 SUMAPAZ",
+        "NULL"
+      ],
+      "codigo_candidato_compartido_por_personas_distintas": [
+        {
+          "partido_cod": "00013",
+          "candidato_cod": "00013",
+          "candidato_nombre": "MARLENE PUENTES JARAMILLO"
+        },
+        {
+          "partido_cod": "00013",
+          "candidato_cod": "00013",
+          "candidato_nombre": "HUBERT ARTURO ZAMORA PINEDA"
+        }
+      ],
+      "duplicados_exactos_eliminados": 0,
+      "muestra_duplicados_exactos": [],
+      "filas_con_cero_votos": 25,
+      "filas_concejo": 1192807,
+      "puestos_concejo": 816,
+      "mesas_concejo": 16236,
+      "votos_concejo_por_tipo": {
+        "blanco": 529514,
+        "candidato": 1675646,
+        "lista": 673328,
+        "no_marcado": 150921,
+        "nulo": 112118
+      }
+    },
+    "2023": {
+      "archivo": "MMV_TERRITORIALES2023_BOGOTA.zip!MMV_2023_16_BOGOTA DC.csv",
+      "filas_archivo": 2116173,
+      "votos_no_numericos": 0,
+      "votos_negativos": 0,
+      "textos_corregidos": {
+        "puesto_nombre: normalizados": 5,
+        "puesto_nombre: espacios_rotos_reparados": 0,
+        "partido_nombre: normalizados": 1,
+        "partido_nombre: espacios_rotos_reparados": 0,
+        "candidato_nombre: normalizados": 0,
+        "candidato_nombre: espacios_rotos_reparados": 2,
+        "comuna_nombre: normalizados": 1,
+        "comuna_nombre: espacios_rotos_reparados": 0
+      },
+      "localidad_inconsistente_con_zona": 0,
+      "comunas_originales": [
+        "LOCALIDAD  8 KENNEDY",
+        "LOCALIDAD 1 USAQUEN",
+        "LOCALIDAD 10 ENGATIVA",
+        "LOCALIDAD 11 SUBA",
+        "LOCALIDAD 12 BARRIOS UNIDOS",
+        "LOCALIDAD 13 TEUSAQUILLO",
+        "LOCALIDAD 14 MARTIRES",
+        "LOCALIDAD 15 ANTONIO NARIÑO",
+        "LOCALIDAD 16 PUENTE ARANDA",
+        "LOCALIDAD 17 CANDELARIA",
+        "LOCALIDAD 18 RAFAEL URIBE URIB",
+        "LOCALIDAD 19 CIUDAD BOLIVAR",
+        "LOCALIDAD 2 CHAPINERO",
+        "LOCALIDAD 20 SUMAPAZ",
+        "LOCALIDAD 3 SANTA FE",
+        "LOCALIDAD 4 SAN CRISTOBAL",
+        "LOCALIDAD 5 USME",
+        "LOCALIDAD 6 TUNJUELITO",
+        "LOCALIDAD 7 BOSA",
+        "LOCALIDAD 9 FONTIBON",
+        "NACIONAL"
+      ],
+      "codigo_candidato_compartido_por_personas_distintas": [],
+      "duplicados_exactos_eliminados": 0,
+      "muestra_duplicados_exactos": [],
+      "filas_con_cero_votos": 1079,
+      "filas_concejo": 1142168,
+      "puestos_concejo": 962,
+      "mesas_concejo": 17789,
+      "votos_concejo_por_tipo": {
+        "blanco": 368831,
+        "candidato": 1699992,
+        "lista": 737325,
+        "no_marcado": 92898,
+        "nulo": 83460
+      }
+    }
+  },
+  "censo": {
+    "2019": {
+      "puestos": 816,
+      "potencial_total": 5846423,
+      "filas_sexo_no_cuadra": 0,
+      "filas_edad_no_cuadra": 0,
+      "puestos_duplicados": 0,
+      "puestos_mmv_sin_censo": [],
+      "puestos_censo_sin_mmv": []
+    },
+    "2023": {
+      "puestos": 962,
+      "potencial_total": 6010616,
+      "filas_sexo_no_cuadra": 0,
+      "filas_edad_no_cuadra": 0,
+      "puestos_duplicados": 0,
+      "puestos_mmv_sin_censo": [],
+      "puestos_censo_sin_mmv": []
+    }
+  },
+  "reparacion_espacios": {
+    "cambios": [
+      [
+        "LIDERAZGO AMPLIO DE RENOVACIÓN AVANZADA DE BTÁ \"LA RA BOGOTÁ\"",
+        "LIDERAZGO AMPLIO DE RENOVACIÓN AVANZADA DE BTÁ \"LARA BOGOTÁ\""
+      ],
+      [
+        "PARTIDO CONSERVADOR - PARTIDO COLOMBIA JUSTA LIBRE S",
+        "PARTIDO CONSERVADOR - PARTIDO COLOMBIA JUSTA LIBRES"
+      ]
+    ],
+    "ambiguos_para_revision": []
+  }
+}

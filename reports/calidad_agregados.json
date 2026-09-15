@@ -1,0 +1,112 @@
+{
+  "geocodificacion": {
+    "camara_2018": {
+      "alta": 569,
+      "media": 58,
+      "baja": 15
+    },
+    "camara_2022": {
+      "alta": 817,
+      "media": 73,
+      "baja": 9
+    },
+    "camara_2026": {
+      "alta": 1073,
+      "media": 10
+    },
+    "concejo_2019": {
+      "alta": 742,
+      "media": 64,
+      "baja": 10
+    },
+    "concejo_2023": {
+      "alta": 936,
+      "media": 21,
+      "baja": 5
+    },
+    "presidente_2018": {
+      "alta": 569,
+      "media": 58,
+      "baja": 15
+    },
+    "presidente_2022": {
+      "alta": 826,
+      "media": 66,
+      "baja": 9
+    },
+    "presidente_2026": {
+      "alta": 1066,
+      "media": 15,
+      "baja": 2
+    },
+    "senado_2022": {
+      "alta": 817,
+      "media": 73,
+      "baja": 9
+    },
+    "senado_2026": {
+      "alta": 1073,
+      "media": 10
+    }
+  },
+  "validacion_curules_2019": {
+    "coincide": true,
+    "calculado": {
+      "av": 12,
+      "bogota_para_la_gente": 2,
+      "cd": 5,
+      "cjl": 2,
+      "colombia_humana": 4,
+      "conservador": 2,
+      "cr": 4,
+      "la_u": 1,
+      "liberal": 7,
+      "mira": 1,
+      "polo": 4
+    },
+    "oficial": {
+      "av": 12,
+      "liberal": 7,
+      "cd": 5,
+      "cr": 4,
+      "polo": 4,
+      "colombia_humana": 4,
+      "bogota_para_la_gente": 2,
+      "conservador": 2,
+      "cjl": 2,
+      "mira": 1,
+      "la_u": 1
+    },
+    "cociente": 65420.181818181816,
+    "umbral": 32710.090909090908,
+    "cifra_repartidora": 47201.0
+  },
+  "validacion_curules_2023": {
+    "coincide": true,
+    "calculado": {
+      "av": 8,
+      "bogota_mas_fuerte": 1,
+      "cd": 7,
+      "conservador_cjl": 1,
+      "cr_mira_u": 4,
+      "lara": 2,
+      "liberal": 6,
+      "nuevo_liberalismo": 8,
+      "pacto_historico": 7
+    },
+    "oficial": {
+      "av": 8,
+      "nuevo_liberalismo": 8,
+      "pacto_historico": 7,
+      "cd": 7,
+      "liberal": 6,
+      "cr_mira_u": 4,
+      "lara": 2,
+      "conservador_cjl": 1,
+      "bogota_mas_fuerte": 1
+    },
+    "cociente": 63776.09090909091,
+    "umbral": 31888.045454545456,
+    "cifra_repartidora": 49481.0
+  }
+}

@@ -1,0 +1,13 @@
+pandas>=3.0
+numpy>=2.0
+scipy>=1.14
+scikit-learn>=1.5
+geopandas>=1.0
+pyarrow>=20
+duckdb>=1.1
+ftfy>=6.2
+rapidfuzz>=3.9
+libpysal>=4.12
+esda>=2.6
+openpyxl>=3.1
+pytest>=8

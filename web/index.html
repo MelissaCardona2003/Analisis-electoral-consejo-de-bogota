@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Análisis de las elecciones al Concejo de Bogotá 2019 y 2023 y pronóstico probabilístico de su composición en 2027." />
+    <meta name="theme-color" content="#f6f5f1" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0d0d0c" media="(prefers-color-scheme: dark)" />
+    <title>Concejo de Bogotá · Observatorio electoral 2027</title>
+    <script>
+      try {
+        const t = localStorage.getItem('tema') || 'sistema'
+        const oscuro = t === 'oscuro' || (t === 'sistema' && matchMedia('(prefers-color-scheme: dark)').matches)
+        document.documentElement.dataset.theme = oscuro ? 'dark' : 'light'
+      } catch { document.documentElement.dataset.theme = 'light' }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

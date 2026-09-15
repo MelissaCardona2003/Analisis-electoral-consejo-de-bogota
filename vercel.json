@@ -1,0 +1,6 @@
+{
+  "installCommand": "cd web && npm ci",
+  "buildCommand": "cd web && npm run build",
+  "outputDirectory": "web/dist",
+  "rewrites": [{ "source": "/((?!data/|assets/|maplibre/|favicon).*)", "destination": "/index.html" }]
+}

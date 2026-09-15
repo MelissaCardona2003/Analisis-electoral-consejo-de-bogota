@@ -1,0 +1,138 @@
+eleccion,partido_cod,lista_id,familia_id,votos_lista,partido_nombre,peso,coalicion_multifamilia,fuente,socios
+camara_2018,00006,,centro_democratico,473933,PARTIDO CENTRO DEMOCRÁTICO,1.0,False,regla,cd
+camara_2018,00004,,alianza_verde,433965,PARTIDO ALIANZA VERDE,1.0,False,regla,av
+camara_2018,00001,,pacto_historico,237376,"COALICIÓN LISTA DE LA DECENCIA (ASI,UP,MAIS)",1.0,False,regla,colombia_humana
+camara_2018,00005,,cr_mira_u,218577,PARTIDO CAMBIO RADICAL,1.0,False,regla,cr
+camara_2018,00009,,liberal,168853,PARTIDO LIBERAL COLOMBIANO,1.0,False,regla,liberal
+camara_2018,00011,,pacto_historico,149137,PARTIDO POLO DEMOCRÁTICO ALTERNATIVO,1.0,False,regla,polo
+camara_2018,00002,,conservador_cjl,128653,G.S.C. COLOMBIA JUSTA LIBRES,1.0,False,regla,cjl
+camara_2018,00012,,cr_mira_u,128444,PARTIDO POLÍTICO MIRA,1.0,False,regla,mira
+camara_2018,00007,,conservador_cjl,94481,PARTIDO CONSERVADOR COLOMBIANO,1.0,False,regla,conservador
+camara_2018,00013,,cr_mira_u,78073,PARTIDO SOCIAL DE UNIDAD NACIONAL PARTIDO DE LA U,1.0,False,regla,la_u
+camara_2018,00014,,otros,25389,PARTIDO SOMOS,1.0,False,regla,sin_regla
+camara_2018,00010,,otros,20977,PARTIDO OPCIÓN CIUDADANA,1.0,False,regla,sin_regla
+camara_2018,00008,,pacto_historico,12528,PARTIDO FUERZA ALTERNATIVA REVOLUCIONARIA DEL COMÚ,1.0,False,regla,farc
+camara_2018,00003,,otros,9083,"MOVIMIENTO TODOS SOMOS COLOMBIA ""TSC""",1.0,False,regla,sin_regla
+camara_2022,00290,,pacto_historico,852895,PACTO HISTÓRICO,1.0,False,regla,pacto_historico
+camara_2022,00004,,alianza_verde,397394,PARTIDO ALIANZA VERDE,1.0,False,regla,av
+camara_2022,00011,,centro_democratico,292882,PARTIDO CENTRO DEMOCRÁTICO,1.0,False,regla,cd
+camara_2022,00019,,nuevo_liberalismo,189814,PARTIDO NUEVO LIBERALISMO,1.0,False,regla,nuevo_liberalismo
+camara_2022,00261,,otros,167952,COALICIÓN CENTRO ESPERANZA,1.0,False,regla,centro_esperanza
+camara_2022,00001,,liberal,142800,PARTIDO LIBERAL COLOMBIANO,1.0,False,regla,liberal
+camara_2022,00222,,cr_mira_u,128777,COALICIÓN MIRA - COLOMBIA JUSTA LIBRES,0.473189,True,regla,mira+cjl
+camara_2022,00222,,conservador_cjl,128777,COALICIÓN MIRA - COLOMBIA JUSTA LIBRES,0.526811,True,regla,mira+cjl
+camara_2022,00003,,cr_mira_u,116055,PARTIDO CAMBIO RADICAL,1.0,False,regla,cr
+camara_2022,00202,,cr_mira_u,111497,"COALICIÓN PARTIDO CONSERVADOR COLOMBIANO Y PARTIDO DE LA ""U""",0.439882,True,regla,la_u+conservador
+camara_2022,00202,,conservador_cjl,111497,"COALICIÓN PARTIDO CONSERVADOR COLOMBIANO Y PARTIDO DE LA ""U""",0.560118,True,regla,la_u+conservador
+camara_2022,00302,,salvacion_nacional,10952,MOVIMIENTO DE SALVACIÓN NACIONAL,1.0,False,regla,bogota_mas_fuerte
+camara_2022,00013,,pacto_historico,6886,PARTIDO COMUNES,1.0,False,regla,farc
+camara_2026,03064,,pacto_historico,932728,MOVIMIENTO POLÍTICO PACTO HISTÓRICO,1.0,False,regla,pacto_historico
+camara_2026,00011,,centro_democratico,694326,PARTIDO CENTRO DEMOCRÁTICO,1.0,False,regla,cd
+camara_2026,00004,,alianza_verde,245261,PARTIDO ALIANZA VERDE,1.0,False,regla,av
+camara_2026,00020,,salvacion_nacional,190113,MOVIMIENTO SALVACIÓN NACIONAL,1.0,False,regla,bogota_mas_fuerte
+camara_2026,00001,,liberal,112817,PARTIDO LIBERAL COLOMBIANO,1.0,False,regla,liberal
+camara_2026,03014,,cr_mira_u,109205,MIRA + DIGNIDAD Y COMPROMISO,0.740595,True,regla,mira+dignidad_compromiso
+camara_2026,03014,,otros,109205,MIRA + DIGNIDAD Y COMPROMISO,0.259405,True,regla,mira+dignidad_compromiso
+camara_2026,00019,,nuevo_liberalismo,105616,PARTIDO NUEVO LIBERALISMO,1.0,False,regla,nuevo_liberalismo
+camara_2026,03095,,cr_mira_u,96155,BOGOTÁ ENTRE TODOS,1.0,False,override,override_cr_mira_u
+camara_2026,00002,,conservador_cjl,78910,PARTIDO CONSERVADOR COLOMBIANO,1.0,False,regla,conservador
+camara_2026,01044,,otros,74131,LA LISTA DE OVIEDO - CON TODA POR BOGOTÁ,1.0,False,override,override_otros
+camara_2026,03122,,otros,45089,MOTOCICLISTAS Y CONDUCTORES UNIDOS POR LA CAUSA,1.0,False,override,override_otros
+camara_2026,03066,,otros,23036,CIUDADANOS RENOVEMOS,1.0,False,override,override_otros
+camara_2026,03047,,otros,17191,NUESTRA FUERZA,1.0,False,override,override_otros
+camara_2026,03086,,otros,7943,ABC ALIANZA BOGOTÁ CONVERGENTE,1.0,False,override,override_otros
+camara_2026,00005,,otros,5258,"MOVIMIENTO AUTORIDADES INDÍGENAS DE COLOMBIA ""AICO""",1.0,False,regla,sin_regla
+concejo_2019,00004,av,alianza_verde,569939,Alianza Verde,1.0,False,concejo_explicito,
+concejo_2019,00001,liberal,liberal,331794,Partido Liberal,1.0,False,concejo_explicito,
+concejo_2019,00011,cd,centro_democratico,261423,Centro Democrático,1.0,False,concejo_explicito,
+concejo_2019,00003,cr,cr_mira_u,235818,Cambio Radical,1.0,False,concejo_explicito,
+concejo_2019,00009,polo,pacto_historico,191627,Polo Democrático Alternativo,1.0,False,concejo_explicito,
+concejo_2019,01946,colombia_humana,pacto_historico,188804,Colombia Humana–UP–MAIS,1.0,False,concejo_explicito,
+concejo_2019,01406,bogota_para_la_gente,nuevo_liberalismo,108133,Bogotá para la Gente,1.0,False,concejo_explicito,
+concejo_2019,00002,conservador,conservador_cjl,102128,Partido Conservador,1.0,False,concejo_explicito,
+concejo_2019,00014,cjl,conservador_cjl,101604,Colombia Justa Libres,1.0,False,concejo_explicito,
+concejo_2019,00007,mira,cr_mira_u,91262,MIRA,1.0,False,concejo_explicito,
+concejo_2019,00008,la_u,cr_mira_u,80205,Partido de la U,1.0,False,concejo_explicito,
+concejo_2019,00013,farc,pacto_historico,25775,FARC (hoy Comunes),1.0,False,concejo_explicito,
+concejo_2019,00015,colombia_renaciente,otros,25057,Colombia Renaciente,1.0,False,concejo_explicito,
+concejo_2019,00006,asi,otros,15685,Alianza Social Independiente,1.0,False,concejo_explicito,
+concejo_2019,00017,pre,otros,12760,Reivindicación Étnica (PRE),1.0,False,concejo_explicito,
+concejo_2019,00016,ada,otros,6960,Alianza Democrática Amplia,1.0,False,concejo_explicito,
+concejo_2023,00004,av,alianza_verde,420166,Alianza Verde,1.0,False,concejo_explicito,
+concejo_2023,07751,nuevo_liberalismo,nuevo_liberalismo,404399,Nuevo Liberalismo en Marcha,1.0,False,concejo_explicito,
+concejo_2023,07726,pacto_historico,pacto_historico,381804,Pacto Histórico,1.0,False,concejo_explicito,
+concejo_2023,00011,cd,centro_democratico,359777,Centro Democrático,1.0,False,concejo_explicito,
+concejo_2023,00001,liberal,liberal,296886,Partido Liberal,1.0,False,concejo_explicito,
+concejo_2023,05410,cr_mira_u,cr_mira_u,216974,Cambio Radical–MIRA–La U,1.0,False,concejo_explicito,
+concejo_2023,07457,lara,otros,138744,LaRA Bogotá,1.0,False,concejo_explicito,
+concejo_2023,07733,conservador_cjl,conservador_cjl,85625,Conservador–Colombia Justa Libres,1.0,False,concejo_explicito,
+concejo_2023,05443,bogota_mas_fuerte,salvacion_nacional,52489,Bogotá Más Fuerte,1.0,False,concejo_explicito,
+concejo_2023,00017,dignidad_compromiso,otros,31966,Dignidad & Compromiso,1.0,False,concejo_explicito,
+concejo_2023,00030,esperanza_democratica,otros,17028,Esperanza Democrática,1.0,False,concejo_explicito,
+concejo_2023,00037,fuerza_ciudadana,otros,16360,Fuerza Ciudadana,1.0,False,concejo_explicito,
+concejo_2023,00033,creemos,otros,5207,Creemos,1.0,False,concejo_explicito,
+concejo_2023,00005,aico,otros,4968,AICO,1.0,False,concejo_explicito,
+concejo_2023,00023,liga,otros,4924,Liga de Gobernantes Anticorrupción,1.0,False,concejo_explicito,
+presidente_2018,00026,,otros,1244477,COALICION COLOMBIA,1.0,False,candidato_presidencial,sin_regla
+presidente_2018,00029,,pacto_historico,1099928,COALICION PETRO PRESIDENTE,1.0,False,candidato_presidencial,sin_regla
+presidente_2018,00012,,centro_democratico,989771,PARTIDO CENTRO DEMOCRATICO,1.0,False,candidato_presidencial,cd
+presidente_2018,00027,,cr_mira_u,172684,COALICION #MEJOR VARGAS LLERAS ANTE TODO COLOMBIA,1.0,False,candidato_presidencial,sin_regla
+presidente_2018,00025,,liberal,93401,COALICION PAR. LIBERAL COLOMBIANO PAR. ALIANZA SOCIAL INDEPENDIENTE ASI,1.0,False,candidato_presidencial,liberal
+presidente_2018,00016,,otros,10696,MOVIMIENTO POLITICO TODOS SOMOS COLOMBIA,1.0,False,candidato_presidencial,sin_regla
+presidente_2018,00014,,otros,5492,PARTIDO SOMOS,1.0,False,candidato_presidencial,sin_regla
+presidente_2018,00028,,otros,3901,"PARTIDO DE REIVINDICACION ETNICA ""PRE""",1.0,False,candidato_presidencial,sin_regla
+presidente_2022,01235,,pacto_historico,1772001,COALICION PACTO HISTÓRICO,1.0,False,candidato_presidencial,pacto_historico
+presidente_2022,01076,,otros,833770,LIGA DE GOBERNANTES ANTICORRUPCION,1.0,False,candidato_presidencial,sin_regla
+presidente_2022,01234,,centro_democratico,725861,COALICION EQUIPO POR COLOMBIA,1.0,False,candidato_presidencial,sin_regla
+presidente_2022,01233,,otros,299050,COALICION CENTRO ESPERANZA,1.0,False,candidato_presidencial,centro_esperanza
+presidente_2022,00014,,conservador_cjl,46913,COLOMBIA JUSTA LIBRES,1.0,False,candidato_presidencial,cjl
+presidente_2022,00302,,salvacion_nacional,9835,PARTIDO MOVIMIENTO DE SALVACION NACIONAL,1.0,False,candidato_presidencial,bogota_mas_fuerte
+presidente_2022,00304,,otros,2374,PARTIDO VERDE OXIGENO,1.0,False,candidato_presidencial,centro_esperanza
+presidente_2022,00527,,otros,2340,COLOMBIA PIENSA EN GRANDE,1.0,False,candidato_presidencial,sin_regla
+presidente_2026,00026,,pacto_historico,1705455,MOVIMIENTO POLÍTICO PACTO HISTÓRICO,1.0,False,candidato_presidencial,pacto_historico
+presidente_2026,01003,,salvacion_nacional,1543282,DEFENSORES DE LA PATRIA,1.0,False,candidato_presidencial,sin_regla
+presidente_2026,00009,,centro_democratico,372210,PARTIDO CENTRO DEMOCRÁTICO,1.0,False,candidato_presidencial,cd
+presidente_2026,00015,,otros,258400,PARTIDO POLÍTICO DIGNIDAD & COMPROMISO,1.0,False,candidato_presidencial,dignidad_compromiso
+presidente_2026,01004,,alianza_verde,102451,CON CLAUDIA IMPARABLES,1.0,False,candidato_presidencial,sin_regla
+presidente_2026,01001,,otros,22003,ROMPER EL SISTEMA,1.0,False,candidato_presidencial,sin_regla
+presidente_2026,03001,,otros,6320,COALICIÓN F.A.M.I.L.I.A,1.0,False,candidato_presidencial,sin_regla
+presidente_2026,00020,,otros,3926,PARTIDO DEMÓCRATA COLOMBIANO,1.0,False,candidato_presidencial,sin_regla
+presidente_2026,01002,,otros,2587,"SONDRA MACOLLINS, LA ABOGADA DE HIERRO",1.0,False,candidato_presidencial,sin_regla
+presidente_2026,00022,,otros,1791,PARTIDO POLÍTICO LA FUERZA,1.0,False,candidato_presidencial,sin_regla
+presidente_2026,00021,,otros,729,PARTIDO ECOLOGISTA COLOMBIANO,1.0,False,candidato_presidencial,sin_regla
+presidente_2026,01005,,otros,0,LA OPORTUNIDAD ES COLOMBIA,1.0,False,candidato_presidencial,sin_regla
+presidente_2026,01006,,otros,0,CAICEDO,1.0,False,candidato_presidencial,sin_regla
+senado_2022,00292,,pacto_historico,815769,PACTO HISTÓRICO,1.0,False,regla,pacto_historico
+senado_2022,00255,,alianza_verde,519735,COALICIÓN ALIANZA VERDE Y CENTRO ESPERANZA,0.865665,True,regla,av+centro_esperanza
+senado_2022,00255,,otros,519735,COALICIÓN ALIANZA VERDE Y CENTRO ESPERANZA,0.134335,True,regla,av+centro_esperanza
+senado_2022,00011,,centro_democratico,340231,PARTIDO CENTRO DEMOCRÁTICO,1.0,False,regla,cd
+senado_2022,00019,,nuevo_liberalismo,164046,PARTIDO NUEVO LIBERALISMO,1.0,False,regla,nuevo_liberalismo
+senado_2022,00001,,liberal,131599,PARTIDO LIBERAL COLOMBIANO,1.0,False,regla,liberal
+senado_2022,00231,,cr_mira_u,130229,COALICIÓN MIRA - COLOMBIA JUSTA LIBRES,0.473189,True,regla,mira+cjl
+senado_2022,00231,,conservador_cjl,130229,COALICIÓN MIRA - COLOMBIA JUSTA LIBRES,0.526811,True,regla,mira+cjl
+senado_2022,00003,,cr_mira_u,120327,PARTIDO CAMBIO RADICAL,1.0,False,regla,cr
+senado_2022,00002,,conservador_cjl,95687,PARTIDO CONSERVADOR COLOMBIANO,1.0,False,regla,conservador
+senado_2022,01140,,otros,76202,FUERZA CIUDADANA LA FUERZA DEL CAMBIO,1.0,False,regla,sin_regla
+senado_2022,00008,,cr_mira_u,68590,"PARTIDO DE LA UNIÓN POR LA GENTE ""PARTIDO DE LA U""",1.0,False,regla,la_u
+senado_2022,01130,,otros,36255,ESTAMOS LISTAS COLOMBIA,1.0,False,regla,centro_esperanza
+senado_2022,01073,,otros,12843,MOVIMIENTO NACIONAL SECTOR ORGANIZADO DE LA SALUD SOS COLOMBIA,1.0,False,regla,sin_regla
+senado_2022,00302,,salvacion_nacional,8536,MOVIMIENTO DE SALVACIÓN NACIONAL,1.0,False,regla,bogota_mas_fuerte
+senado_2022,01186,,otros,6511,MOVIMIENTO GENTE NUEVA,1.0,False,regla,sin_regla
+senado_2022,00013,,pacto_historico,5173,PARTIDO COMUNES,1.0,False,regla,farc
+senado_2022,01039,,otros,3707,MOVIMIENTO UNITARIO METAPOLITICO,1.0,False,regla,sin_regla
+senado_2026,03063,,pacto_historico,938526,PACTO HISTÓRICO SENADO,1.0,False,regla,pacto_historico
+senado_2026,00011,,centro_democratico,648898,PARTIDO CENTRO DEMOCRÁTICO,1.0,False,regla,cd
+senado_2026,03020,,otros,360200,ALIANZA POR COLOMBIA,1.0,False,regla,sin_regla
+senado_2026,00020,,salvacion_nacional,198737,MOVIMIENTO SALVACIÓN NACIONAL,1.0,False,regla,bogota_mas_fuerte
+senado_2026,03002,,otros,195439,AHORA COLOMBIA,1.0,False,regla,sin_regla
+senado_2026,00001,,liberal,185159,PARTIDO LIBERAL COLOMBIANO,1.0,False,regla,liberal
+senado_2026,00002,,conservador_cjl,96572,PARTIDO CONSERVADOR COLOMBIANO,1.0,False,regla,conservador
+senado_2026,03003,,cr_mira_u,84049,COALICIÓN CAMBIO RADICAL - ALMA,1.0,False,regla,cr
+senado_2026,01079,,otros,65191,LA LISTA DE OVIEDO - CON TODA POR COLOMBIA,1.0,False,regla,sin_regla
+senado_2026,00008,,cr_mira_u,51323,PARTIDO DE LA UNIÓN POR LA GENTE - PARTIDO DE LA U,1.0,False,regla,la_u
+senado_2026,03018,,pacto_historico,43093,FRENTE AMPLIO UNITARIO,1.0,False,regla,frente_amplio
+senado_2026,03143,,otros,11593,COALICIÓN FUERZA CIUDADANA,1.0,False,regla,sin_regla
+senado_2026,01070,,otros,6172,CREEMOS,1.0,False,regla,sin_regla
+senado_2026,00021,,otros,5216,PARTIDO POLÍTICO OXÍGENO,1.0,False,regla,centro_esperanza
+senado_2026,01039,,otros,2225,COLOMBIA SEGURA Y PRÓSPERA,1.0,False,regla,sin_regla
+senado_2026,01008,,otros,1621,PATRIOTAS,1.0,False,regla,sin_regla
