@@ -1,0 +1,10 @@
+# La web es un sitio estático en web/. El pipeline de Python y los datos crudos no se despliegan
+# (y su presencia hace que Vercel detecte el proyecto como backend de Python).
+# Rutas ancladas a la raíz: "data/" sin barra inicial también excluiría web/public/data.
+/pipeline/
+/data/
+/reference/
+/reports/
+/pyproject.toml
+/requirements.txt
+/.venv/
