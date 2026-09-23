@@ -224,11 +224,14 @@ export default function Metodologia() {
               calculan después, lista por lista.
             </p>
             <p>
-              <strong className="text-ink">Centro.</strong> Se comparan cuatro reglas pronosticando 2023 con información previa: repetir el Concejo anterior, trasladar el cambio de la
-              Cámara (swing uniforme), transferirlo en escala logit con un coeficiente κ, y una matriz de transferencia entre familias estimada por inferencia ecológica bayesiana
-              (regresión ecológica con verosimilitud Dirichlet-Multinomial sobre los puestos, ver <a className="link-underline" href="#matriz-transferencia">más abajo</a>). La elegida
-              fue <em>{pro.pronostico.nombre_regla.toLowerCase()}</em>, la de menor error ({dec(pro.backtest.metricas[pro.backtest.elegido].mae_pp, 2)} puntos por familia); las demás
-              quedan disponibles como escenarios alternativos.
+              <strong className="text-ink">Centro.</strong> Se comparan cinco reglas pronosticando 2023 con información previa: repetir el Concejo anterior, trasladar el cambio de la
+              Cámara (swing uniforme), transferirlo en escala logit con un coeficiente κ (una vez calibrado con Cámara y otra vez con la primera vuelta presidencial), y una matriz de
+              transferencia entre familias estimada por inferencia ecológica bayesiana (regresión ecológica con verosimilitud Dirichlet-Multinomial sobre los puestos, ver{' '}
+              <a className="link-underline" href="#matriz-transferencia">más abajo</a>). La elegida fue <em>{pro.pronostico.nombre_regla.toLowerCase()}</em>, la de menor error (
+              {dec(pro.backtest.metricas[pro.backtest.elegido].mae_pp, 2)} puntos por familia); las demás quedan disponibles como escenarios alternativos. La regla presidencial, con los
+              datos actuales, empata exactamente con persistencia: solo 4 de las 10 categorías tienen candidatura presidencial propia comparable en las cuatro elecciones necesarias, y la
+              relación estimada entre el cambio presidencial y el cambio del Concejo sale de signo negativo — la salvaguarda que ya usa la regla de κ (nunca amplificar en la dirección
+              contraria) la deja en cero. No se relajó esa salvaguarda para forzar que la regla "gane": se documenta el resultado tal como salió.
             </p>
             <p>
               <strong className="text-ink">Incertidumbre.</strong> Los cambios logit de las familias establecidas entre 2011, 2015, 2019 y 2023 ({v.n} observaciones) se ajustan por
@@ -321,7 +324,7 @@ export default function Metodologia() {
                 <code className="rounded bg-surface-2 px-1 py-0.5 text-[12px]">data/processed/transferencia.json</code>. Como toda inferencia ecológica, la identificación
                 depende de que la composición de cada puesto varíe lo suficiente entre elecciones: si todos los puestos votaran igual, ningún volumen de datos podría distinguir
                 "todos se quedan" de "todos rotan en la misma proporción". Por eso importan los intervalos, no solo el promedio. La matriz de Cámara 2018→2022 solo entra al
-                pronóstico base si mejora el error del backtest sobre 2023 frente a las otras tres reglas de arriba; si no lo mejora, queda disponible como escenario
+                pronóstico base si mejora el error del backtest sobre 2023 frente a las otras cuatro reglas de arriba; si no lo mejora, queda disponible como escenario
                 alternativo, nunca oculta.
               </Callout>
             </div>

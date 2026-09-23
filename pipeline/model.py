@@ -35,7 +35,8 @@ N_MUESTRA_WEB = 2_000
 NOMBRES_REGLA = {"persistencia": "Persistencia (repetir el último Concejo)",
                  "swing_uniforme": "Swing uniforme de Cámara",
                  "transferencia": "Transferencia logit desde Cámara (κ)",
-                 "transferencia_matriz": "Matriz de transferencia (inferencia ecológica bayesiana)"}
+                 "transferencia_matriz": "Matriz de transferencia (inferencia ecológica bayesiana)",
+                 "transferencia_presidencial": "Transferencia logit desde Presidencial (κ)"}
 rng = np.random.default_rng(C.SEED)
 
 
@@ -141,7 +142,8 @@ def centro_matriz(s: np.ndarray, T: np.ndarray) -> np.ndarray:
     return logit(normalizar(s @ T))
 
 
-def centros(S: pd.DataFrame, base: str, leg0: str, leg1: str, kappa: dict, matriz: np.ndarray | None = None) -> dict[str, np.ndarray]:
+def centros(S: pd.DataFrame, base: str, leg0: str, leg1: str, kappa: dict, matriz: np.ndarray | None = None,
+            leg0_pres: str | None = None, leg1_pres: str | None = None, kappa_pres: dict | None = None) -> dict[str, np.ndarray]:
     s, c0, c1 = (S.loc[e, CATS].values.astype(float) for e in (base, leg0, leg1))
     elegibles = np.array([min(S.loc[leg0, c], S.loc[leg1, c], S.loc[base, c]) >= ESTABLECIDA for c in CATS])
     lofo = {f["categoria"]: f["kappa_sin_ella"] for f in kappa["familias"]}
@@ -151,6 +153,15 @@ def centros(S: pd.DataFrame, base: str, leg0: str, leg1: str, kappa: dict, matri
            "transferencia": logit(s) + k * (logit(c1) - logit(c0))}
     if matriz is not None:
         out["transferencia_matriz"] = centro_matriz(s, matriz)
+    if kappa_pres is not None:
+        # mismo mecanismo que `transferencia` (κ + leave-one-out + clip[0,1]), pero calibrado con la
+        # presidencial en vez de con Cámara — ver nota en pipeline/model.py sobre por qué NO se debe
+        # relajar el clip aunque el κ presidencial salga negativo con los datos actuales.
+        c0p, c1p = (S.loc[e, CATS].values.astype(float) for e in (leg0_pres, leg1_pres))
+        elegibles_p = np.array([min(S.loc[leg0_pres, c], S.loc[leg1_pres, c], S.loc[base, c]) >= ESTABLECIDA for c in CATS])
+        lofo_p = {f["categoria"]: f["kappa_sin_ella"] for f in kappa_pres["familias"]}
+        k_p = np.array([np.clip(lofo_p.get(c, kappa_pres["kappa_mco"]), 0, 1) if elegibles_p[i] else 0.0 for i, c in enumerate(CATS)])
+        out["transferencia_presidencial"] = logit(s) + k_p * (logit(c1p) - logit(c0p))
     return out
 
 
@@ -247,13 +258,19 @@ def resumen_curules(c: np.ndarray, maximo: int = C.CURULES_REPARTIDORA) -> dict:
 def backtest(S: pd.DataFrame, listas: pd.DataFrame, n: int) -> dict:
     vol = calibrar_volatilidad(S, [(2011, 2015), (2015, 2019)])  # solo transiciones previas a 2023
     kap = calibrar_kappa(S, "camara_2018", "camara_2022", "concejo_2019", "concejo_2023")
+    # presidencial 2018→2022 (jun 2018, jun 2022) es anterior a concejo_2023 (oct 2023) — mismo
+    # criterio leak-free que ya usa camara_2018_2022 justo abajo. Opcional (`None` si algún día se
+    # regenera S sin presidenciales): centros() ignora la regla si kappa_pres es None.
+    kap_pres = (calibrar_kappa(S, "presidente_2018", "presidente_2022", "concejo_2019", "concejo_2023")
+               if {"presidente_2018", "presidente_2022"} <= set(S.index) else None)
     real = S.loc["concejo_2023", CATS].values.astype(float)
     # OJO: la matriz concejo_2019_2023 NO puede usarse aquí — se estimó CON el resultado real de
     # 2023, así que "predecir" con ella sería circular (igual que sería circular si `kap` no usara
     # leave-one-out). Para competir limpio contra las otras tres reglas, que solo usan información
     # anterior a 2023, se usa la matriz Cámara 2018→2022: el mismo par pre-2023 que ya usa `kap`.
     T_bt, _ = cargar_matriz_transferencia("camara_2018_2022")
-    reglas = centros(S, "concejo_2019", "camara_2018", "camara_2022", kap, matriz=T_bt)
+    reglas = centros(S, "concejo_2019", "camara_2018", "camara_2022", kap, matriz=T_bt,
+                     leg0_pres="presidente_2018", leg1_pres="presidente_2022", kappa_pres=kap_pres)
 
     # listas inscritas en 2023; peso dentro de la familia según 2019 (listas nuevas: promedio de su familia o igualitario)
     L23 = listas[listas["anio"] == 2023]
@@ -313,12 +330,18 @@ def cuota_lista(eleccion: str, partido_cod: str) -> float:
 def pronostico(S: pd.DataFrame, listas: pd.DataFrame, n: int, elegido: str) -> dict:
     vol = calibrar_volatilidad(S, [(2011, 2015), (2015, 2019), (2019, 2023)])
     kap = calibrar_kappa(S, "camara_2018", "camara_2022", "concejo_2019", "concejo_2023")
+    kap_pres = (calibrar_kappa(S, "presidente_2018", "presidente_2022", "concejo_2019", "concejo_2023")
+               if {"presidente_2018", "presidente_2022"} <= set(S.index) else None)
     conv = conversion_camara_concejo(S, "camara_2022", "concejo_2023")
     kap_2027 = {**kap, "familias": []}  # para 2027 se aplica el κ de MCO a toda familia elegible
+    kap_pres_2027 = {**kap_pres, "familias": []} if kap_pres is not None else None
     # el pronóstico usa la matriz Cámara 2022→2026 (no hay una que termine en 2027): mismo supuesto
     # que ya hace la regla `transferencia` de κ, que también traslada el cambio observado en Cámara.
+    # Presidencial 2022→2026 (jun 2022, jun 2026) es la contraparte presidencial: ambas anteriores a
+    # concejo_2027 (oct 2027), sin fuga de datos.
     T_fc, _ = cargar_matriz_transferencia("camara_2022_2026")
-    reglas = centros(S, "concejo_2023", "camara_2022", "camara_2026", kap_2027, matriz=T_fc)
+    reglas = centros(S, "concejo_2023", "camara_2022", "camara_2026", kap_2027, matriz=T_fc,
+                     leg0_pres="presidente_2022", leg1_pres="presidente_2026", kappa_pres=kap_pres_2027)
     ruido = (vol["nu"], vol["escala_t"])
     s23 = S.loc["concejo_2023", CATS].values.astype(float)
 

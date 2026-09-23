@@ -51,6 +51,8 @@ PRESIDENCIALES = {
     "HUMBERTO DE LA CALLE": "liberal", "GERMAN VARGAS LLERAS": "cr_mira_u",
     "ABELARDO DE LA ESPRIELLA": "salvacion_nacional", "ENRIQUE GOMEZ": "salvacion_nacional",
     "ENRIQUE GOMEZ MARTINEZ": "salvacion_nacional", "JOHN MILTON RODRIGUEZ": "conservador_cjl",
+    "RODOLFO HERNANDEZ": "otros",  # independiente sin linaje en el Concejo, igual que Fajardo — no cambia
+                                    # ningún número: hoy ya cae en "otros" por el default de aggregate.py
 }
 
 # Listas del Concejo: identificador estable.

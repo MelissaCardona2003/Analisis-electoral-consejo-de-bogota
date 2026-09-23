@@ -11,6 +11,7 @@ const NOMBRE_ESCENARIO: Record<string, string> = {
   swing_uniforme: 'Swing uniforme de Cámara 2026',
   transferencia: 'Transferencia desde Cámara (κ)',
   transferencia_matriz: 'Matriz de transferencia (inferencia ecológica)',
+  transferencia_presidencial: 'Transferencia desde Presidencial (κ)',
   sin_lista_de_oviedo: 'Sin La Lista de Oviedo',
 }
 

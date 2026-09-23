@@ -1,8 +1,8 @@
 {
-  "dani_base_2027": {
-    "id": "dani_base_2027",
-    "nombre": "Base (hipótesis de Dani)",
-    "descripcion": "Escenario base de la hipótesis de Dani: el Pacto Histórico se mantiene como una de las fuerzas principales; Alianza Verde pierde una parte MODERADA de su electorado (sin una escisión formal todavía); el Nuevo Liberalismo conserva representación pero reduce su votación; Centro Democrático y Salvación Nacional compiten por separado (como ya ocurre en el modelo de datos, así que este escenario no las toca); Cambio Radical y Partido de la U mantienen una representación limitada (no se modelan aparte en esta versión: siguen agregadas en \"otros\", igual que en el resto del sitio). Los números de abajo son ILUSTRATIVOS — traducen la dirección cualitativa del texto de Dani, no una medición —, deben ajustarse con él antes de tratarlos como una apuesta informada.\n",
+  "equipo_base_2027": {
+    "id": "equipo_base_2027",
+    "nombre": "Base (hipótesis del equipo)",
+    "descripcion": "Escenario base de la hipótesis del equipo: el Pacto Histórico se mantiene como una de las fuerzas principales; Alianza Verde pierde una parte MODERADA de su electorado (sin una escisión formal todavía); el Nuevo Liberalismo conserva representación pero reduce su votación; Centro Democrático y Salvación Nacional compiten por separado (como ya ocurre en el modelo de datos, así que este escenario no las toca); Cambio Radical y Partido de la U mantienen una representación limitada (no se modelan aparte en esta versión: siguen agregadas en \"otros\", igual que en el resto del sitio). Los números de abajo son ILUSTRATIVOS — traducen la dirección cualitativa del texto del equipo, no una medición —, deben ajustarse con el equipo antes de tratarlos como una apuesta informada.\n",
     "familias": {
       "pacto_historico": {
         "media": 9.4052,
@@ -103,10 +103,10 @@
       "blanco": 0.05179310204092357
     }
   },
-  "dani_fragmentacion_2027": {
-    "id": "dani_fragmentacion_2027",
-    "nombre": "Alta fragmentación (hipótesis de Dani)",
-    "descripcion": "Escenario de alta fragmentación: surge un nuevo movimiento liderado por Claudia López que capta votantes tradicionales de Alianza Verde, electores de centroizquierda, independientes y urbanos que no se identifican con el Pacto Histórico; Alianza Verde pierde una proporción SIGNIFICATIVA de su electorado (no solo hacia López, también hacia el Pacto y otros sectores); Dignidad y Compromiso (con figuras como Jennifer Pedraza y dirigentes del MOIR) se consolida como otra fuerza del centro e intenta superar el umbral, compitiendo por votantes de Verde, Nuevo Liberalismo e independientes; el Nuevo Liberalismo rinde por debajo de 2023; el Pacto Histórico se beneficia de esa dispersión y de mantener una base más cohesionada, y podría convertirse en la lista más votada. Los números de abajo son ILUSTRATIVOS — traducen la dirección cualitativa del texto de Dani (sección 3: \"pérdida significativa\", \"el centro se divide entre cuatro o más listas\"), no una medición —, deben ajustarse con él antes de tratarlos como una apuesta informada.\n",
+  "equipo_fragmentacion_2027": {
+    "id": "equipo_fragmentacion_2027",
+    "nombre": "Alta fragmentación (hipótesis del equipo)",
+    "descripcion": "Escenario de alta fragmentación: surge un nuevo movimiento liderado por Claudia López que capta votantes tradicionales de Alianza Verde, electores de centroizquierda, independientes y urbanos que no se identifican con el Pacto Histórico; Alianza Verde pierde una proporción SIGNIFICATIVA de su electorado (no solo hacia López, también hacia el Pacto y otros sectores); Dignidad y Compromiso (con figuras como Jennifer Pedraza y dirigentes del MOIR) se consolida como otra fuerza del centro e intenta superar el umbral, compitiendo por votantes de Verde, Nuevo Liberalismo e independientes; el Nuevo Liberalismo rinde por debajo de 2023; el Pacto Histórico se beneficia de esa dispersión y de mantener una base más cohesionada, y podría convertirse en la lista más votada. Los números de abajo son ILUSTRATIVOS — traducen la dirección cualitativa del texto del equipo (sección 3: \"pérdida significativa\", \"el centro se divide entre cuatro o más listas\"), no una medición —, deben ajustarse con el equipo antes de tratarlos como una apuesta informada.\n",
     "familias": {
       "pacto_historico": {
         "media": 10.2576,
@@ -328,10 +328,10 @@
       "blanco": 0.049983760645070416
     }
   },
-  "dani_reorganizacion_2027": {
-    "id": "dani_reorganizacion_2027",
-    "nombre": "Reorganización de coaliciones (hipótesis de Dani)",
-    "descripcion": "Escenario de reorganización de coaliciones: Centro Democrático y Salvación Nacional actúan coordinadamente en vez de competir por separado (Dani pide explícitamente comparar un \"escenario de alianza\" contra uno \"de división\" para estas dos fuerzas — este archivo modela la alianza; el escenario de división ya es, de hecho, el comportamiento por defecto del modelo, porque ahí Centro Democrático y Salvación Nacional siempre se tratan como familias separadas). Algunos sectores del centro se agrupan alrededor de una candidatura común, en vez de fragmentarse en varias listas nuevas: se modela como un solo movimiento nuevo, más chico que el de Claudia López del escenario de fragmentación. Alianza Verde conserva una parte mayor de su estructura que en el escenario de alta fragmentación. El Pacto Histórico sigue siendo relevante pero enfrenta una competencia más concentrada (no se le da el mismo impulso que en el escenario de fragmentación). Los números de abajo son ILUSTRATIVOS, no una medición, y deben ajustarse con Dani antes de tratarlos como una apuesta informada.\n",
+  "equipo_reorganizacion_2027": {
+    "id": "equipo_reorganizacion_2027",
+    "nombre": "Reorganización de coaliciones (hipótesis del equipo)",
+    "descripcion": "Escenario de reorganización de coaliciones: Centro Democrático y Salvación Nacional actúan coordinadamente en vez de competir por separado (el equipo pide explícitamente comparar un \"escenario de alianza\" contra uno \"de división\" para estas dos fuerzas — este archivo modela la alianza; el escenario de división ya es, de hecho, el comportamiento por defecto del modelo, porque ahí Centro Democrático y Salvación Nacional siempre se tratan como familias separadas). Algunos sectores del centro se agrupan alrededor de una candidatura común, en vez de fragmentarse en varias listas nuevas: se modela como un solo movimiento nuevo, más chico que el de Claudia López del escenario de fragmentación. Alianza Verde conserva una parte mayor de su estructura que en el escenario de alta fragmentación. El Pacto Histórico sigue siendo relevante pero enfrenta una competencia más concentrada (no se le da el mismo impulso que en el escenario de fragmentación). Los números de abajo son ILUSTRATIVOS, no una medición, y deben ajustarse con el equipo antes de tratarlos como una apuesta informada.\n",
     "familias": {
       "pacto_historico": {
         "media": 9.1892,
