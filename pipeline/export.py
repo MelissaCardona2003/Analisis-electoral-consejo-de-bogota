@@ -51,9 +51,11 @@ def main() -> None:
 
     # ── meta ──
     familias = FAMILIAS.rename(columns={"familia_id": "id"}).to_dict("records")
+    consultas_nombres = sorted(pd.read_parquet(C.PROCESSED / "consultas_2026_upz.parquet")["partido_nombre"].unique().tolist())
     escribir("meta.json", {"familias": familias, "localidades": {k: v for k, v in LOCALIDADES.items() if k <= 20},
                            "generado": modelo["generado"], "eleccion": modelo["eleccion"],
-                           "listas": {k: {"nombre": v[0], "familia": v[1]} for k, v in LISTAS_INFO.items()}})
+                           "listas": {k: {"nombre": v[0], "familia": v[1]} for k, v in LISTAS_INFO.items()},
+                           "consultas_2026": consultas_nombres})
 
     # ── resultados por lista ──
     res = {}
@@ -144,6 +146,50 @@ def main() -> None:
                                        for cod, v in modelo["proyeccion_upz"]["upz"].items()}
     capas["lisa"] = {var: dict(zip(g["upz_cod"], g["cluster"])) for var, g in lisa.groupby("variable")}
     capas["moran"] = analisis["moran_global"]
+
+    # ── consultas interpartidistas 2026 ──
+    # Viven fuera del modelo de 9 familias (son coaliciones ad-hoc, no
+    # partidos individuales) — capa aparte, agregada por lista/coalición
+    # en vez de por familia. Ver pipeline/aggregate.py, sección 4.1.
+    cons = pd.read_parquet(C.PROCESSED / "consultas_2026_upz.parquet")
+    capa_consultas = {}
+    for upz_cod, g in cons.groupby("upz_cod"):
+        total = int(g["votos"].sum())
+        capa_consultas[upz_cod] = {
+            "listas": {r.partido_nombre: round(r.votos / total, 4) for r in g.itertuples()} if total else {},
+            "ganador": g.loc[g["votos"].idxmax(), "partido_nombre"] if total else None,
+            "votos_totales": total,
+        }
+    capas["consulta_2026"] = capa_consultas
+
+    # ── estructura de edad 2023 ──
+    # Coroplético por UPZ/localidad (dato observado: agregación directa del censo electoral) +
+    # pirámide hombres/mujeres por tramo (ESTIMADA: el censo trae sexo y edad como marginales
+    # separadas por puesto, no cruzadas; se asume que la forma de la distribución de edad es
+    # igual entre sexos dentro de cada zona — ver nota en pipeline/aggregate.py, sección 4.2).
+    capas["edades"] = {}
+    for nivel in ("upz", "localidad"):
+        ed = pd.read_parquet(C.PROCESSED / f"edades_{nivel}.parquet")
+        capa_nivel = {}
+        for r in ed.itertuples():
+            conocido = sum(getattr(r, c) for c in C.EDAD_COLS)
+            piramide = []
+            for col, borde in zip(C.EDAD_COLS, C.EDAD_BORDES):
+                share = getattr(r, col) / conocido if conocido else 0.0
+                piramide.append({
+                    "tramo": "61+" if col == "e60_mas" else f"{borde}-{borde + (2 if col == 'e18_20' else 4)}",
+                    "hombres_pct": round(share * r.hombres / r.potencial, 5) if r.potencial else 0.0,
+                    "mujeres_pct": round(share * r.mujeres / r.potencial, 5) if r.potencial else 0.0,
+                })
+            capa_nivel[str(r.cod)] = {
+                "potencial": int(r.potencial), "pct_18_30": round(r.pct_18_30, 4), "pct_60_mas": round(r.pct_60_mas, 4),
+                "mediana": round(r.mediana, 1) if r.mediana is not None else None,
+                "hombres_pct": round(r.hombres / r.potencial, 4) if r.potencial else None,
+                "mujeres_pct": round(r.mujeres / r.potencial, 4) if r.potencial else None,
+                "piramide": piramide,
+            }
+        capas["edades"][nivel] = capa_nivel
+
     escribir("capas.json", capas)
 
     # puestos 2023 (columnar)
@@ -190,6 +236,16 @@ def main() -> None:
                                  "beta_local": modelo["proyeccion_upz"]["beta_persistencia_local"],
                                  "cuotas_historicas": modelo["cuotas_historicas"]})
     escribir("simulaciones.json", pr["muestra"])
+
+    # ── matriz de transferencia (diagnóstico completo, para la página de metodología) ──
+    trans_path = C.PROCESSED / "transferencia.json"
+    if trans_path.exists():
+        escribir("transferencia.json", json.loads(trans_path.read_text(encoding="utf-8")))
+
+    # ── escenarios con hipótesis (Fase 3) — rotulados, nunca el pronóstico por defecto ──
+    esc_path = C.PROCESSED / "escenarios_ia.json"
+    if esc_path.exists():
+        escribir("escenarios_ia.json", json.loads(esc_path.read_text(encoding="utf-8")))
 
     # ── simulador: base central por lista ──
     base = []

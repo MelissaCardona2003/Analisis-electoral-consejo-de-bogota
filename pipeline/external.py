@@ -125,6 +125,17 @@ def _leer_ancho_fijo(path: Path, spec: list[tuple[str, int]]) -> pd.DataFrame:
     return pd.DataFrame(filas)
 
 
+def _extraer_miembro(zip_path: Path, member: str, destino: Path) -> Path:
+    """Extrae un miembro de un zip a una ruta plana (sin heredar la estructura
+    de carpetas interna del zip), cacheando en disco si ya existe."""
+    if destino.exists() and destino.stat().st_size > 0:
+        return destino
+    destino.parent.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(zip_path) as zf:
+        destino.write_bytes(zf.read(member))
+    return destino
+
+
 SPEC_PARTIDOS = [("partido_cod", 5), ("partido_nombre", 200)]
 SPEC_CANDIDATOS = [("corp", 3), ("circ", 1), ("dep", 2), ("mun", 3), ("comuna", 2), ("partido_cod", 5),
                    ("candidato_cod", 3), ("preferente", 1), ("nombre", 50), ("apellido", 50), ("cedula", 15),
@@ -134,6 +145,29 @@ SPEC_DIVIPOL = [("dep", 2), ("mun", 3), ("zona", 2), ("puesto", 2), ("dep_nombre
                 ("comuna", 2), ("comuna_nombre", 30)]
 SPEC_CODIGOS_MMV = ["fijo", "dep", "mun", "zona", "puesto", "mesa", "comuna", "corp", "circ", "partido_cod",
                     "candidato_cod", "votos"]
+# MMV_9999_PRECONTEO (ver "Estructuras Basicas (1808).pdf" dentro de MMV_CONGRESO_2026.zip):
+# ancho fijo, sin separador ';' y sin columna de corporación explícita (va implícita
+# en el prefijo del archivo, p. ej. CNS_ = consultas, SEN_ = senado, CAM_ = cámara).
+SPEC_CONSULTAS_PRECONTEO = [("dep", 2), ("mun", 3), ("zona", 2), ("puesto", 2), ("mesa", 6), ("jal", 2),
+                            ("comunicado", 4), ("circ", 1), ("partido_cod", 5), ("candidato_cod", 3), ("votos", 8)]
+
+
+def _leer_ancho_fijo_bogota(path: Path, spec: list[tuple[str, int]], dep="16", mun="001") -> pd.DataFrame:
+    """Como _leer_ancho_fijo, filtrando a un departamento/municipio en el mismo
+    barrido de líneas (evita materializar en memoria filas de otras ciudades;
+    el archivo nacional de consultas trae ~1,3M líneas)."""
+    text = decodificar(path.read_bytes())
+    dep_w, mun_w = spec[0][1], spec[1][1]
+    filas = []
+    for line in text.splitlines():
+        if not line.strip() or line[:dep_w] != dep or line[dep_w:dep_w + mun_w] != mun:
+            continue
+        pos, fila = 0, {}
+        for name, width in spec:
+            fila[name] = line[pos:pos + width].strip()
+            pos += width
+        filas.append(fila)
+    return pd.DataFrame(filas)
 
 
 def _divipol_bogota(path: Path, eleccion: str) -> pd.DataFrame:
@@ -332,8 +366,73 @@ def congreso_2026() -> tuple[pd.DataFrame, pd.DataFrame]:
     return pd.concat(outs, ignore_index=True), div
 
 
+def consultas_2026() -> tuple[pd.DataFrame, None]:
+    """Consultas interpartidistas de 2026 (corporación 006 = CONSULTAS),
+    preconteo por mesa, filtrado a Bogotá. Los nombres de las 3 listas/
+    coaliciones y sus candidatos vienen de un archivo básico aparte
+    (ArchivosBasicosDiaElectoralCOngreso2026.zip) que sí incluye corp=006 —
+    los básicos ya usados por congreso_2026() no lo traían."""
+    z = EXT / "MMV_CONGRESO_2026.zip"
+    base = EXT / "congreso2026"
+
+    cns_path = _extraer_miembro(z, "MMV_CONGRESO_2026/mmvPRECONTEOCongreso2026/CNS_MMV_9999.txt",
+                                base / "CNS_MMV_9999_preconteo.txt")
+    raw = _leer_ancho_fijo_bogota(cns_path, SPEC_CONSULTAS_PRECONTEO)
+    raw["candidato_cod"] = pd.to_numeric(raw["candidato_cod"], errors="coerce").fillna(0).astype(int)
+    raw["_pc"] = pd.to_numeric(raw["partido_cod"], errors="coerce").fillna(0).astype(int)
+
+    basicos_zip = _extraer_miembro(z, "MMV_CONGRESO_2026/ArchivosBasicosDiaElectoralCOngreso2026.zip",
+                                   base / "ArchivosBasicosDiaElectoralCOngreso2026.zip")
+    with zipfile.ZipFile(basicos_zip) as zf:
+        member = next(n for n in zf.namelist() if "CANDIDATOS" in n.upper())
+        cand_text = zf.read(member).decode("cp1252", errors="replace")
+
+    filas = []
+    for line in cand_text.splitlines():
+        if not line.strip() or line[:3] != "006":
+            continue
+        pos, fila = 0, {}
+        for name, width in SPEC_CANDIDATOS:
+            fila[name] = line[pos:pos + width]
+            pos += width
+        filas.append(fila)
+    cand = pd.DataFrame(filas)
+    cand["nombre"] = cand["nombre"].str.strip()
+    cand["apellido"] = cand["apellido"].str.strip()
+    cand["candidato_cod"] = pd.to_numeric(cand["candidato_cod"], errors="coerce").fillna(0).astype(int)
+    cand["_pc"] = pd.to_numeric(cand["partido_cod"], errors="coerce").fillna(0).astype(int)
+
+    # Cabecera de lista (candidato_cod==0): "nombre" trae el título de la
+    # consulta y puede desbordar a "apellido" sin espacio de por medio (ver
+    # PDF: "el nombre del partido abreviado... cuando hace referencia a la
+    # cabecera de lista"). Candidatos reales sí llevan nombre y apellido
+    # separados por un espacio.
+    es_cabecera = cand["candidato_cod"] == 0
+    cand["nombre_completo"] = ""
+    cand.loc[es_cabecera, "nombre_completo"] = (cand.loc[es_cabecera, "nombre"] + cand.loc[es_cabecera, "apellido"]).str.strip()
+    cand.loc[~es_cabecera, "nombre_completo"] = (cand.loc[~es_cabecera, "nombre"] + " " + cand.loc[~es_cabecera, "apellido"]).str.strip()
+
+    nombre_lista = dict(zip(cand.loc[es_cabecera, "_pc"], cand.loc[es_cabecera, "nombre_completo"]))
+    ck = cand["_pc"].astype(str) + "-" + cand["candidato_cod"].astype(str)
+    candidato_nombre = dict(zip(ck, cand["nombre_completo"]))
+
+    raw["_k"] = raw["_pc"].astype(str) + "-" + raw["candidato_cod"].astype(str)
+    raw["candidato_nombre"] = raw["_k"].map(candidato_nombre)
+    raw["partido_nombre"] = raw["_pc"].map(nombre_lista)
+    esp = raw["candidato_cod"].map({996: "VOTOS EN BLANCO", 997: "VOTOS NULOS", 998: "VOTOS NO MARCADOS"})
+    raw["candidato_nombre"] = raw["candidato_nombre"].fillna(esp).fillna("")
+    raw["partido_nombre"] = raw["partido_nombre"].fillna("")
+
+    out = _agregar(raw, "consulta_2026", "CONSULTAS")
+    div = _divipol_bogota(EXT / "basicos" / "congreso2026" / "DIVIPOL.TXT", "consulta_2026")
+    out["puesto_nombre"] = out["puesto_id"].map(dict(zip(div["puesto_id"], div["puesto_nombre"]))).fillna("")
+    LOG["consulta_2026"] = {"archivo": "mmvPRECONTEOCongreso2026/CNS_MMV_9999.txt", "formato": "ancho fijo (PRECONTEO)",
+                            "filas_bogota_fuente": int(len(raw)), "listas": sorted(set(nombre_lista.values()))}
+    return out, None
+
+
 FUENTES = {"presidente_2018": presidente_2018, "presidente_2022": presidente_2022, "presidente_2026": presidente_2026,
-           "congreso_2022": congreso_2022, "congreso_2026": congreso_2026}
+           "congreso_2022": congreso_2022, "congreso_2026": congreso_2026, "consulta_2026": consultas_2026}
 
 
 def main() -> None:

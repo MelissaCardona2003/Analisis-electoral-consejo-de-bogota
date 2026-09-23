@@ -19,7 +19,6 @@ from .partidos import FAMILIA_IDS, LISTAS_INFO
 from .textnorm import LOCALIDADES, text_key
 
 NO_PARTIDISTAS = ["blanco", "nulo", "no_marcado"]
-ESPECIALES = {90, 98}  # puesto censo (Corferias) y centros de reclusión: cuentan en la ciudad, no en mapas
 
 
 # ───────────────────────── índices ─────────────────────────
@@ -123,7 +122,7 @@ def resumen_ciudad(cat, listas, censos) -> dict:
 
 def por_unidad(cat, censos, geo, nivel: str) -> pd.DataFrame:
     """Participación, blanco y cuotas por familia para cada elección y unidad (localidad_cod | upz_cod)."""
-    base = cat[~cat["localidad_cod"].isin(ESPECIALES)].copy()
+    base = cat[~cat["localidad_cod"].isin(C.ESPECIALES)].copy()
     p = pivot_categorias(base, ["eleccion", nivel]).reset_index()
     for f in FAMILIA_IDS + ["blanco"]:
         p[f"pct_{f}"] = p[f] / p["validos"].where(p["validos"] > 0)
@@ -224,7 +223,7 @@ def candidatos(geo: pd.DataFrame, listas: pd.DataFrame) -> pd.DataFrame:
 
 def demografia(cat: pd.DataFrame, censos: dict) -> dict:
     """Relación ecológica (por puesto) entre estructura etaria/sexo y cuota de cada familia en 2023."""
-    base = cat[(cat["eleccion"] == "concejo_2023") & ~cat["localidad_cod"].isin(ESPECIALES)]
+    base = cat[(cat["eleccion"] == "concejo_2023") & ~cat["localidad_cod"].isin(C.ESPECIALES)]
     p = pivot_categorias(base, ["puesto_id"]).reset_index()
     c = censos[2023].copy()
     c["jovenes_18_30"] = (c["e18_20"] + c["e21_25"] + c["e26_30"]) / c["potencial"]

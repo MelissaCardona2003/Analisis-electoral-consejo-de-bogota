@@ -8,10 +8,10 @@ import { useTemaEfectivo } from '../components/ThemeToggle'
 import { FloatingTip, TipRow, type TipState } from '../components/Tooltip'
 import { Callout, Card, CardTitle, Dot, SectionHeader, Segmented, famColor } from '../components/ui'
 import { num, pct, pp } from '../lib/format'
-import type { CapaFila, Capas, Puestos } from '../lib/types'
+import type { CapaFila, Capas, CapaConsulta, CapaEdad, TramoEdad, Puestos } from '../lib/types'
 import { useJson, useMeta } from '../lib/useJson'
 
-type Variable = 'ganador' | 'familia' | 'participacion' | 'blanco' | 'cambio' | 'bastiones'
+type Variable = 'ganador' | 'familia' | 'participacion' | 'blanco' | 'cambio' | 'bastiones' | 'edades'
 type Nivel = 'upz' | 'localidad'
 type Props = { cod: string; nombre: string; localidad: number }
 
@@ -27,6 +27,8 @@ const ELECCIONES = [
   { value: 'camara_2022', label: 'Cámara 2022' },
   { value: 'presidente_2026', label: 'Presidencia 2026' },
   { value: 'presidente_2022', label: 'Presidencia 2022' },
+  { value: 'consulta_2026', label: 'Consultas 2026' },
+  { value: 'edades_2023', label: 'Estructura de edad (censo 2023)' },
 ]
 const VARIABLES: { value: Variable; label: string }[] = [
   { value: 'ganador', label: 'Familia más votada' },
@@ -73,10 +75,16 @@ export default function Mapa() {
   const [estiloListo, setEstiloListo] = useState(0)
 
   const esConcejo = eleccion.startsWith('concejo')
+  const esConsulta = eleccion === 'consulta_2026'
+  const esEdades = eleccion === 'edades_2023'
   const efectiva: Variable =
-    (variable === 'participacion' && !esConcejo) || (variable === 'bastiones' && nivel === 'localidad') ? 'ganador' : variable
+    esEdades
+      ? 'edades'
+      : (variable === 'participacion' && !esConcejo) || (variable === 'bastiones' && nivel === 'localidad') || esConsulta
+        ? 'ganador'
+        : variable
   const eleccionDatos = efectiva === 'cambio' || efectiva === 'bastiones' ? 'concejo_2023' : eleccion
-  const nivelDatos: Nivel = eleccion === 'proyeccion_2027' ? 'upz' : nivel
+  const nivelDatos: Nivel = eleccion === 'proyeccion_2027' || esConsulta ? 'upz' : nivel
 
   // paleta leída de los tokens CSS del tema activo (MapLibre necesita colores concretos)
   const pal = useMemo(() => {
@@ -84,15 +92,37 @@ export default function Mapa() {
     const fam = Object.fromEntries(familias.map((f) => [f.id, cssVar(`--fam-${f.id}`)]))
     const seq = Array.from({ length: 8 }, (_, i) => cssVar(`--seq-${i}`))
     const div = ['--div-neg-3', '--div-neg-2', '--div-neg-1', '--div-mid', '--div-pos-1', '--div-pos-2', '--div-pos-3'].map(cssVar)
-    return { fam, seq, div, surface: cssVar('--surface'), surface2: cssVar('--surface-2'), ink: cssVar('--ink'), hairline: cssVar('--hairline') }
+    const consultas = [0, 1, 2].map((i) => cssVar(`--consulta-${i}`))
+    const seqEdad = Array.from({ length: 8 }, (_, i) => cssVar(`--seq-edad-${i}`))
+    return {
+      fam, seq, div, consultas, seqEdad, sexoH: cssVar('--sexo-h'), sexoM: cssVar('--sexo-m'),
+      surface: cssVar('--surface'), surface2: cssVar('--surface-2'), ink: cssVar('--ink'), hairline: cssVar('--hairline'),
+    }
   }, [familias, tema])
 
-  const filas = (nivelDatos === 'upz' ? capas.upz : capas.localidad)[eleccionDatos] as Record<string, CapaFila> | undefined
+  // las consultas interpartidistas viven en su propia capa (claves = nombre de lista, no id de familia);
+  // se normalizan a la forma CapaFila para reutilizar el mismo motor de escala/color/tooltip que el resto del mapa
+  const filasConsulta = useMemo(() => {
+    if (!esConsulta) return undefined
+    return Object.fromEntries(
+      Object.entries(capas.consulta_2026 ?? {}).map(([cod, c]: [string, CapaConsulta]) => [
+        cod,
+        { cuotas: c.listas, blanco: null, participacion: null, validos: c.votos_totales, ganador: c.ganador, margen: null } satisfies CapaFila,
+      ]),
+    ) as Record<string, CapaFila>
+  }, [esConsulta, capas.consulta_2026])
+
+  const filas = esConsulta ? filasConsulta : ((nivelDatos === 'upz' ? capas.upz : capas.localidad)[eleccionDatos] as Record<string, CapaFila> | undefined)
   const filas19 = (nivelDatos === 'upz' ? capas.upz : capas.localidad).concejo_2019 as Record<string, CapaFila>
+  // estructura de edad 2023 (censo): capa independiente de la elección, con forma propia (CapaEdad)
+  const filasEdades: Record<string, CapaEdad> | undefined = capas.edades[nivelDatos]
+  // "Puestos 2023" son votos del Concejo por familia: no aplica ni a consultas ni a estructura de edad
+  const ocultarPuestos = esConsulta || esEdades
 
   const escala = useMemo(() => {
     const vals: number[] = []
     const valor = (cod: string): number | null => {
+      if (efectiva === 'edades') return filasEdades?.[cod]?.mediana ?? null
       const f = filas?.[cod]
       if (!f) return null
       if (efectiva === 'familia') return f.cuotas[familia] ?? null
@@ -115,9 +145,21 @@ export default function Mapa() {
     const max = Math.max(...vals)
     const absMax = Math.max(...vals.map(Math.abs), 0.001)
     const color = (cod: string): string => {
+      if (efectiva === 'edades') {
+        const v = valor(cod)
+        if (v == null) return pal.surface2
+        const t = max > min ? Math.min(Math.floor(((v - min) / (max - min)) * 7), 6) : 0
+        return pal.seqEdad[t + 1]
+      }
       const f = filas?.[cod]
       if (!f) return pal.surface2
-      if (efectiva === 'ganador') return f.ganador ? pal.fam[f.ganador] : pal.surface2
+      if (efectiva === 'ganador') {
+        if (esConsulta) {
+          const idx = f.ganador ? meta.consultas_2026.indexOf(f.ganador) : -1
+          return idx >= 0 ? pal.consultas[idx] : pal.surface2
+        }
+        return f.ganador ? pal.fam[f.ganador] : pal.surface2
+      }
       if (efectiva === 'bastiones') {
         const c = capas.lisa[familia]?.[cod] ?? 'no_significativo'
         return {
@@ -142,7 +184,7 @@ export default function Mapa() {
       return pal.seq[t + 1]
     }
     return { valor, color, min, max, absMax }
-  }, [filas, filas19, efectiva, familia, nivelDatos, upzGeo, locGeo, pal, capas.lisa])
+  }, [filas, filas19, filasEdades, efectiva, familia, nivelDatos, upzGeo, locGeo, pal, capas.lisa, esConsulta, meta.consultas_2026])
 
   const datosZonas = useMemo(() => {
     const base = nivelDatos === 'upz' ? upzGeo : locGeo
@@ -281,9 +323,9 @@ export default function Mapa() {
     const m = mapa.current
     if (!m || !estiloListo || !m.getSource('puestos')) return
     ;(m.getSource('puestos') as GeoJSONSource).setData(datosPuestos)
-    m.setLayoutProperty('puestos', 'visibility', verPuestos ? 'visible' : 'none')
+    m.setLayoutProperty('puestos', 'visibility', verPuestos && !ocultarPuestos ? 'visible' : 'none')
     m.setPaintProperty('puestos', 'circle-stroke-color', pal.surface)
-  }, [datosPuestos, verPuestos, estiloListo, pal])
+  }, [datosPuestos, verPuestos, estiloListo, pal, ocultarPuestos])
 
   const selPrevia = useRef<string | null>(null)
   useEffect(() => {
@@ -329,7 +371,41 @@ export default function Mapa() {
       }
     }
     if (!cod) return null
+    if (efectiva === 'edades') {
+      const fe = filasEdades?.[cod]
+      return {
+        ...tip,
+        content: (
+          <div>
+            <p className="font-semibold">{nombreZona(cod)}</p>
+            {localidadDe(cod) && <p className="text-[12px] text-muted">{localidadDe(cod)}</p>}
+            <div className="mt-1.5">
+              <TipRow label="Edad mediana" value={fe?.mediana == null ? '–' : `${fe.mediana} años`} strong />
+              <TipRow label="18 a 30 años" value={fe ? pct(fe.pct_18_30) : '–'} />
+              <TipRow label="Más de 60 años" value={fe ? pct(fe.pct_60_mas) : '–'} />
+            </div>
+          </div>
+        ),
+      }
+    }
     const f = filas?.[cod]
+    if (esConsulta) {
+      const topC = f ? meta.consultas_2026.map((nombre, i) => ({ nombre, i, v: (f.cuotas[nombre] as number) ?? 0 })).sort((a, b) => b.v - a.v) : []
+      return {
+        ...tip,
+        content: (
+          <div>
+            <p className="font-semibold">{nombreZona(cod)}</p>
+            {localidadDe(cod) && <p className="text-[12px] text-muted">{localidadDe(cod)}</p>}
+            <div className="mt-1.5">
+              {topC.map(({ nombre, i, v }) => (
+                <TipRow key={nombre} color={pal.consultas[i]} label={nombre} value={pct(v)} />
+              ))}
+            </div>
+          </div>
+        ),
+      }
+    }
     const top = f ? familias.map((x) => ({ x, v: f.cuotas[x.id] ?? 0 })).sort((a, b) => b.v - a.v).slice(0, 3) : []
     const v = escala.valor(cod)
     return {
@@ -351,10 +427,12 @@ export default function Mapa() {
       ),
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tip, filas, efectiva, familia, escala])
+  }, [tip, filas, filasEdades, efectiva, familia, escala, esConsulta, meta.consultas_2026, pal])
 
   const filaSel = sel ? filas?.[sel] : null
   const filaSel19 = sel ? filas19?.[sel] : null
+  const filaSelEdades = sel ? filasEdades?.[sel] : null
+  const haySeleccion = efectiva === 'edades' ? filaSelEdades != null : filaSel != null
   const necesitaFamilia = efectiva === 'familia' || efectiva === 'cambio' || efectiva === 'bastiones'
 
   return (
@@ -362,7 +440,7 @@ export default function Mapa() {
       <SectionHeader
         eyebrow="Geografía electoral"
         title="El mapa político de Bogotá"
-        lede="Resultados por UPZ y localidad a partir de la geolocalización de cada puesto de votación. Compara el Concejo con la Cámara y la Presidencia, la proyección territorial de 2027 y los bastiones estadísticos de cada fuerza."
+        lede="Resultados por UPZ y localidad a partir de la geolocalización de cada puesto de votación. Compara el Concejo con la Cámara y la Presidencia, la proyección territorial de 2027, las consultas de 2026, la estructura de edad del censo y los bastiones estadísticos de cada fuerza — elige la capa en el primer menú."
       />
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
@@ -373,13 +451,15 @@ export default function Mapa() {
             </option>
           ))}
         </select>
-        <select value={variable} onChange={(e) => setVariable(e.target.value as Variable)} aria-label="Variable" className="h-9 rounded-full border border-hairline bg-surface px-3 text-[13px]">
-          {VARIABLES.map((o) => (
-            <option key={o.value} value={o.value} disabled={(o.value === 'participacion' && !esConcejo) || (o.value === 'bastiones' && nivel === 'localidad')}>
-              {o.label}
-            </option>
-          ))}
-        </select>
+        {!esConsulta && !esEdades && (
+          <select value={variable} onChange={(e) => setVariable(e.target.value as Variable)} aria-label="Variable" className="h-9 rounded-full border border-hairline bg-surface px-3 text-[13px]">
+            {VARIABLES.map((o) => (
+              <option key={o.value} value={o.value} disabled={(o.value === 'participacion' && !esConcejo) || (o.value === 'bastiones' && nivel === 'localidad')}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        )}
         {necesitaFamilia && (
           <select value={familia} onChange={(e) => setFamilia(e.target.value)} aria-label="Familia" className="h-9 rounded-full border border-hairline bg-surface px-3 text-[13px]">
             {familias.map((f) => (
@@ -390,8 +470,8 @@ export default function Mapa() {
           </select>
         )}
         <Segmented<Nivel> label="Nivel" value={nivelDatos} onChange={setNivel} options={[{ value: 'upz', label: 'UPZ' }, { value: 'localidad', label: 'Localidad' }]} />
-        <label className="ml-auto flex items-center gap-2 text-[13px] text-ink-2">
-          <input type="checkbox" checked={verPuestos} onChange={(e) => setVerPuestos(e.target.checked)} className="size-4 accent-[var(--ink)]" />
+        <label className="ml-auto flex items-center gap-2 text-[13px] text-ink-2" title={ocultarPuestos ? 'No disponible: los puestos mostrados son votos del Concejo 2023 por familia' : undefined}>
+          <input type="checkbox" checked={verPuestos && !ocultarPuestos} disabled={ocultarPuestos} onChange={(e) => setVerPuestos(e.target.checked)} className="size-4 accent-[var(--ink)]" />
           Puestos 2023
         </label>
       </div>
@@ -400,84 +480,168 @@ export default function Mapa() {
         <div className="card relative overflow-hidden p-0 lg:col-span-8">
           <div ref={contenedor} className="h-[68vh] min-h-[420px] w-full lg:h-[680px]" role="region" aria-label="Mapa de Bogotá por UPZ" />
           <div className="pointer-events-none absolute bottom-3 left-3 max-w-[calc(100%-1.5rem)] rounded-xl border border-[var(--ring)] bg-surface/95 px-3 py-2.5 shadow-[var(--shadow)] backdrop-blur">
-            <Leyenda efectiva={efectiva} familia={familia} escala={escala} pal={pal} famPorId={famPorId} familias={familias} />
+            <Leyenda
+              efectiva={efectiva}
+              familia={familia}
+              escala={escala}
+              pal={pal}
+              famPorId={famPorId}
+              familias={familias}
+              esConsulta={esConsulta}
+              consultasNombres={meta.consultas_2026}
+            />
           </div>
         </div>
 
         <Card className="lg:col-span-4">
-          {filaSel ? (
+          {haySeleccion ? (
             <>
               <CardTitle
                 title={nombreZona(sel!)}
-                subtitle={[localidadDe(sel!), ELECCIONES.find((e) => e.value === eleccionDatos)?.label].filter(Boolean).join(' · ')}
+                subtitle={
+                  efectiva === 'edades'
+                    ? [localidadDe(sel!), 'Censo electoral 2023'].filter(Boolean).join(' · ')
+                    : [localidadDe(sel!), ELECCIONES.find((e) => e.value === eleccionDatos)?.label].filter(Boolean).join(' · ')
+                }
                 right={
                   <button className="text-[13px] text-muted link-underline" onClick={() => setSel(null)}>
                     Cerrar
                   </button>
                 }
               />
-              <div className="mb-4 grid grid-cols-2 gap-3 text-[13px]">
-                {filaSel.validos > 0 && (
-                  <div>
-                    <p className="text-muted">Votos válidos</p>
-                    <p className="tabular font-semibold">{num(filaSel.validos)}</p>
+              {efectiva === 'edades' && filaSelEdades ? (
+                <>
+                  <div className="mb-4 grid grid-cols-3 gap-3 text-[13px]">
+                    <div>
+                      <p className="text-muted">Edad mediana</p>
+                      <p className="tabular font-semibold">{filaSelEdades.mediana == null ? '–' : `${filaSelEdades.mediana} años`}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted">18 a 30 años</p>
+                      <p className="tabular font-semibold">{pct(filaSelEdades.pct_18_30)}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted">Más de 60 años</p>
+                      <p className="tabular font-semibold">{pct(filaSelEdades.pct_60_mas)}</p>
+                    </div>
                   </div>
-                )}
-                {filaSel.participacion != null && (
-                  <div>
-                    <p className="text-muted">Participación</p>
-                    <p className="tabular font-semibold">{pct(filaSel.participacion)}</p>
+                  <div className="mb-1.5 flex items-center justify-between">
+                    <p className="text-[12px] font-semibold text-ink-2">Pirámide de población</p>
+                    <div className="flex items-center gap-3 text-[11px] text-ink-2">
+                      <span className="flex items-center gap-1">
+                        <span className="size-2 rounded-full" style={{ background: pal.sexoH }} />
+                        Hombres
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <span className="size-2 rounded-full" style={{ background: pal.sexoM }} />
+                        Mujeres
+                      </span>
+                    </div>
                   </div>
-                )}
-              </div>
-              <ul className="space-y-1.5">
-                {familias
-                  .map((f) => ({ f, v: filaSel.cuotas[f.id] ?? 0, a: filaSel19?.cuotas[f.id] ?? null }))
-                  .sort((x, y) => y.v - x.v)
-                  .map(({ f, v, a }) => (
-                    <li key={f.id} className="grid grid-cols-[6.5rem_1fr_3.5rem] items-center gap-2 text-[13px]">
-                      <span className="flex min-w-0 items-center gap-1.5 text-ink-2">
-                        <Dot familia={f.id} size={8} />
-                        <span className="truncate">{f.nombre_corto}</span>
-                      </span>
-                      <span className="h-2 rounded-r-[3px] bg-surface-2">
-                        <span className="block h-full rounded-r-[3px]" style={{ width: `${Math.min(100, (v / 0.4) * 100)}%`, background: famColor(f.id) }} />
-                      </span>
-                      <span className="tabular text-right">{pct(v)}</span>
-                      {eleccionDatos === 'concejo_2023' && a != null && (
-                        <span className={`tabular col-start-3 -mt-1 text-right text-[11px] ${v - a > 0 ? 'text-good' : v - a < 0 ? 'text-critical' : 'text-muted'}`}>{pp(v - a)}</span>
-                      )}
-                    </li>
-                  ))}
-              </ul>
+                  <PiramideEdad piramide={filaSelEdades.piramide} colorH={pal.sexoH} colorM={pal.sexoM} />
+                  <div className="mt-3">
+                    <Callout title="Pirámide estimada">
+                      El censo reporta sexo y edad como totales separados por puesto, no cruzados. Esta pirámide asume que
+                      la distribución de edad es igual entre hombres y mujeres en la zona; la edad mediana y los
+                      porcentajes de arriba sí son un agregado directo del censo, sin ese supuesto.
+                    </Callout>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="mb-4 grid grid-cols-2 gap-3 text-[13px]">
+                    {filaSel!.validos > 0 && (
+                      <div>
+                        <p className="text-muted">Votos válidos</p>
+                        <p className="tabular font-semibold">{num(filaSel!.validos)}</p>
+                      </div>
+                    )}
+                    {filaSel!.participacion != null && (
+                      <div>
+                        <p className="text-muted">Participación</p>
+                        <p className="tabular font-semibold">{pct(filaSel!.participacion)}</p>
+                      </div>
+                    )}
+                  </div>
+                  <ul className="space-y-1.5">
+                    {esConsulta
+                      ? meta.consultas_2026
+                          .map((nombre, i) => ({ nombre, i, v: (filaSel!.cuotas[nombre] as number) ?? 0 }))
+                          .sort((x, y) => y.v - x.v)
+                          .map(({ nombre, i, v }) => (
+                            <li key={nombre} className="grid grid-cols-[9rem_1fr_3.5rem] items-center gap-2 text-[13px]">
+                              <span className="flex min-w-0 items-center gap-1.5 text-ink-2">
+                                <span className="size-2 shrink-0 rounded-full" style={{ background: pal.consultas[i] }} />
+                                <span className="truncate">{nombre}</span>
+                              </span>
+                              <span className="h-2 rounded-r-[3px] bg-surface-2">
+                                <span className="block h-full rounded-r-[3px]" style={{ width: `${Math.min(100, v * 100)}%`, background: pal.consultas[i] }} />
+                              </span>
+                              <span className="tabular text-right">{pct(v)}</span>
+                            </li>
+                          ))
+                      : familias
+                          .map((f) => ({ f, v: filaSel!.cuotas[f.id] ?? 0, a: filaSel19?.cuotas[f.id] ?? null }))
+                          .sort((x, y) => y.v - x.v)
+                          .map(({ f, v, a }) => (
+                            <li key={f.id} className="grid grid-cols-[6.5rem_1fr_3.5rem] items-center gap-2 text-[13px]">
+                              <span className="flex min-w-0 items-center gap-1.5 text-ink-2">
+                                <Dot familia={f.id} size={8} />
+                                <span className="truncate">{f.nombre_corto}</span>
+                              </span>
+                              <span className="h-2 rounded-r-[3px] bg-surface-2">
+                                <span className="block h-full rounded-r-[3px]" style={{ width: `${Math.min(100, (v / 0.4) * 100)}%`, background: famColor(f.id) }} />
+                              </span>
+                              <span className="tabular text-right">{pct(v)}</span>
+                              {eleccionDatos === 'concejo_2023' && a != null && (
+                                <span className={`tabular col-start-3 -mt-1 text-right text-[11px] ${v - a > 0 ? 'text-good' : v - a < 0 ? 'text-critical' : 'text-muted'}`}>{pp(v - a)}</span>
+                              )}
+                            </li>
+                          ))}
+                  </ul>
+                </>
+              )}
             </>
           ) : (
             <>
-              <CardTitle title="Explora una zona" subtitle="Toca o haz clic en una UPZ o localidad para ver el detalle de su votación." />
+              <CardTitle
+                title={esEdades ? 'Explora la pirámide de una zona' : 'Explora una zona'}
+                subtitle={
+                  esEdades
+                    ? 'Toca o haz clic en una UPZ o localidad para ver su pirámide de población por edad y sexo.'
+                    : 'Toca o haz clic en una UPZ o localidad para ver el detalle de su votación.'
+                }
+              />
               <Callout title="Cómo se construye">
-                Cada uno de los {puestos.id.length.toLocaleString('es-CO')} puestos de 2023 se ubicó comparando su nombre con el catálogo georreferenciado de la
-                Registraduría (similitud difusa dentro de la misma localidad) y se asignó a su UPZ. Los bastiones usan autocorrelación espacial local (LISA,
-                999 permutaciones, p &lt; 0,05).
+                {esConsulta
+                  ? 'Cada mesa de la consulta interpartidista de marzo de 2026 se ubicó en su puesto de votación y se agregó por UPZ. Al ser una coalición ad-hoc de varios partidos, esta capa se muestra aparte del modelo de familias políticas del Concejo.'
+                  : efectiva === 'edades'
+                    ? 'El censo electoral de 2023 trae potencial, sexo y 11 rangos de edad por puesto de votación; se agregaron por UPZ y localidad para el mapa. La pirámide hombres/mujeres de cada zona es una estimación (ver nota al hacer clic en una zona).'
+                    : `Cada uno de los ${puestos.id.length.toLocaleString('es-CO')} puestos de 2023 se ubicó comparando su nombre con el catálogo georreferenciado de la Registraduría (similitud difusa dentro de la misma localidad) y se asignó a su UPZ. Los bastiones usan autocorrelación espacial local (LISA, 999 permutaciones, p < 0,05).`}
               </Callout>
-              <p className="mt-5 eyebrow">Concentración geográfica · I de Moran 2023</p>
-              <ul className="mt-2 space-y-1.5">
-                {familias
-                  .filter((f) => capas.moran[f.id])
-                  .sort((a, b) => capas.moran[b.id].I - capas.moran[a.id].I)
-                  .map((f) => (
-                    <li key={f.id} className="grid grid-cols-[7rem_1fr_2.5rem] items-center gap-2 text-[13px]">
-                      <span className="flex min-w-0 items-center gap-1.5 text-ink-2">
-                        <Dot familia={f.id} size={8} />
-                        <span className="truncate">{f.nombre_corto}</span>
-                      </span>
-                      <span className="h-1.5 rounded-full bg-surface-2">
-                        <span className="block h-full rounded-full bg-ink" style={{ width: `${Math.max(0, capas.moran[f.id].I) * 100}%` }} />
-                      </span>
-                      <span className="tabular text-right">{capas.moran[f.id].I.toFixed(2).replace('.', ',')}</span>
-                    </li>
-                  ))}
-              </ul>
-              <p className="mt-2 text-[12px] text-muted">0 = votación dispersa al azar; 1 = zonas vecinas votan casi igual.</p>
+              {!esConsulta && efectiva !== 'edades' && (
+                <>
+                  <p className="mt-5 eyebrow">Concentración geográfica · I de Moran 2023</p>
+                  <ul className="mt-2 space-y-1.5">
+                    {familias
+                      .filter((f) => capas.moran[f.id])
+                      .sort((a, b) => capas.moran[b.id].I - capas.moran[a.id].I)
+                      .map((f) => (
+                        <li key={f.id} className="grid grid-cols-[7rem_1fr_2.5rem] items-center gap-2 text-[13px]">
+                          <span className="flex min-w-0 items-center gap-1.5 text-ink-2">
+                            <Dot familia={f.id} size={8} />
+                            <span className="truncate">{f.nombre_corto}</span>
+                          </span>
+                          <span className="h-1.5 rounded-full bg-surface-2">
+                            <span className="block h-full rounded-full bg-ink" style={{ width: `${Math.max(0, capas.moran[f.id].I) * 100}%` }} />
+                          </span>
+                          <span className="tabular text-right">{capas.moran[f.id].I.toFixed(2).replace('.', ',')}</span>
+                        </li>
+                      ))}
+                  </ul>
+                  <p className="mt-2 text-[12px] text-muted">0 = votación dispersa al azar; 1 = zonas vecinas votan casi igual.</p>
+                </>
+              )}
             </>
           )}
         </Card>
@@ -494,14 +658,32 @@ function Leyenda({
   pal,
   famPorId,
   familias,
+  esConsulta,
+  consultasNombres,
 }: {
   efectiva: Variable
   familia: string
   escala: { min: number; max: number; absMax: number }
-  pal: { fam: Record<string, string>; seq: string[]; div: string[]; surface: string; surface2: string }
+  pal: { fam: Record<string, string>; seq: string[]; div: string[]; consultas: string[]; surface: string; surface2: string }
   famPorId: Record<string, { nombre_corto: string }>
   familias: { id: string; nombre_corto: string }[]
+  esConsulta: boolean
+  consultasNombres: string[]
 }) {
+  if (efectiva === 'ganador' && esConsulta)
+    return (
+      <div>
+        <p className="mb-1.5 text-[11px] font-semibold text-ink-2">Lista más votada</p>
+        <ul className="space-y-1">
+          {consultasNombres.map((nombre, i) => (
+            <li key={nombre} className="flex items-center gap-1.5 text-[11px] text-ink-2">
+              <span className="size-2.5 rounded-sm" style={{ background: pal.consultas[i] }} />
+              {nombre}
+            </li>
+          ))}
+        </ul>
+      </div>
+    )
   if (efectiva === 'ganador')
     return (
       <div>
@@ -551,7 +733,11 @@ function Leyenda({
         </div>
       </div>
     )
-  const titulo = efectiva === 'familia' ? `Votos de ${famPorId[familia]?.nombre_corto}` : efectiva === 'participacion' ? 'Participación' : 'Voto en blanco'
+  const titulo =
+    efectiva === 'familia' ? `Votos de ${famPorId[familia]?.nombre_corto}`
+    : efectiva === 'participacion' ? 'Participación'
+    : efectiva === 'edades' ? 'Edad mediana'
+    : 'Voto en blanco'
   const colores = efectiva === 'familia' ? [0, 0.2, 0.4, 0.6, 0.8, 1].map((t) => interpolateLab(pal.surface2, pal.fam[familia])(0.1 + 0.9 * t)) : pal.seq.slice(1)
   const min = efectiva === 'familia' ? 0 : escala.min
   return (
@@ -563,9 +749,30 @@ function Leyenda({
         ))}
       </div>
       <div className="tabular mt-1 flex w-52 justify-between text-[10px] text-muted">
-        <span>{pct(min, 0)}</span>
-        <span>{pct(escala.max, 0)}</span>
+        <span>{efectiva === 'edades' ? `${min.toFixed(0)} años` : pct(min, 0)}</span>
+        <span>{efectiva === 'edades' ? `${escala.max.toFixed(0)} años` : pct(escala.max, 0)}</span>
       </div>
+    </div>
+  )
+}
+
+function PiramideEdad({ piramide, colorH, colorM }: { piramide: TramoEdad[]; colorH: string; colorM: string }) {
+  const max = Math.max(...piramide.flatMap((t) => [t.hombres_pct, t.mujeres_pct]), 0.0001)
+  return (
+    <div className="space-y-1">
+      {piramide.map((t) => (
+        <div key={t.tramo} className="grid grid-cols-[1fr_2.75rem_1fr] items-center gap-1.5">
+          <div className="flex items-center justify-end gap-1" title={`Hombres ${t.tramo}: ${pct(t.hombres_pct, 1)}`}>
+            <span className="tabular text-[10px] text-muted">{t.hombres_pct > max * 0.4 ? pct(t.hombres_pct, 1) : ''}</span>
+            <span className="h-3 min-w-px rounded-l-[3px]" style={{ width: `${(t.hombres_pct / max) * 100}%`, background: colorH }} />
+          </div>
+          <span className="tabular text-center text-[10px] text-muted">{t.tramo}</span>
+          <div className="flex items-center justify-start gap-1" title={`Mujeres ${t.tramo}: ${pct(t.mujeres_pct, 1)}`}>
+            <span className="h-3 min-w-px rounded-r-[3px]" style={{ width: `${(t.mujeres_pct / max) * 100}%`, background: colorM }} />
+            <span className="tabular text-[10px] text-muted">{t.mujeres_pct > max * 0.4 ? pct(t.mujeres_pct, 1) : ''}</span>
+          </div>
+        </div>
+      ))}
     </div>
   )
 }

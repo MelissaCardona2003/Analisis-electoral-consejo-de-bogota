@@ -24,6 +24,10 @@
       "media": 21,
       "baja": 5
     },
+    "consulta_2026": {
+      "alta": 1073,
+      "media": 10
+    },
     "presidente_2018": {
       "alta": 569,
       "media": 58,
@@ -48,6 +52,14 @@
       "alta": 1073,
       "media": 10
     }
+  },
+  "consultas_2026": {
+    "upz_con_datos": 112,
+    "votos_totales": 1655005
+  },
+  "edades_2023": {
+    "puestos_con_upz": 957,
+    "potencial_total": 5693240
   },
   "validacion_curules_2019": {
     "coincide": true,

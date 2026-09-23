@@ -31,6 +31,28 @@
   --fam-blanco: #c9c7bf;
   --fam-oposicion: #0b0b0b;
 
+  /* consultas interpartidistas 2026 — orden fijo por índice (no son familias
+     del Concejo, son coaliciones ad-hoc); validado con dataviz/validate_palette.js */
+  --consulta-0: #106b93;
+  --consulta-1: #a12a6d;
+  --consulta-2: #7a5c00;
+
+  /* pirámide de edad (hombres/mujeres) — par categórico propio, no reutiliza
+     tonos partidistas; validado con dataviz/validate_palette.js */
+  --sexo-h: #1f7aad;
+  --sexo-m: #c2542f;
+
+  /* secuencial violeta para estructura de edad — hue propio, distinguible del azul de
+     participación/blanco a simple vista (misma familia de paletas, luminosidad monótona) */
+  --seq-edad-0: #f4effa;
+  --seq-edad-1: #ded0f1;
+  --seq-edad-2: #c2a8e6;
+  --seq-edad-3: #a079d8;
+  --seq-edad-4: #7f49ca;
+  --seq-edad-5: #6431aa;
+  --seq-edad-6: #4c2682;
+  --seq-edad-7: #381c5f;
+
   /* secuencial azul y divergente azul↔rojo (punto medio gris) */
   --seq-0: #eef4fc;
   --seq-1: #cde2fb;
@@ -76,6 +98,25 @@
   --fam-otros: #8f8d86;
   --fam-blanco: #55544f;
   --fam-oposicion: #f5f4ef;
+
+  /* consultas interpartidistas 2026 — pasos propios para fondo oscuro */
+  --consulta-0: #2f93b8;
+  --consulta-1: #c94f88;
+  --consulta-2: #b8862a;
+
+  /* pirámide de edad — pasos propios para fondo oscuro */
+  --sexo-h: #3f93c2;
+  --sexo-m: #d16a44;
+
+  /* secuencial violeta (edad) — pasos propios para fondo oscuro */
+  --seq-edad-0: #291249;
+  --seq-edad-1: #3c1b6a;
+  --seq-edad-2: #50248f;
+  --seq-edad-3: #672eb8;
+  --seq-edad-4: #8147d1;
+  --seq-edad-5: #9d70db;
+  --seq-edad-6: #b999e6;
+  --seq-edad-7: #d5c2f0;
 
   --seq-0: #16263b;
   --seq-1: #104281;

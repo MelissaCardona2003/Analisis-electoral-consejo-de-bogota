@@ -6,3 +6,4 @@ requires-python = ">=3.11"
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["pipeline/tests"]
+markers = ["slow: corre un ajuste MCMC real (segundos, no minutos); se puede omitir con -m 'not slow'"]

@@ -16,6 +16,7 @@ export interface Meta {
   generado: string
   eleccion: string
   listas: Record<string, { nombre: string; familia: string }>
+  consultas_2026: string[]
 }
 
 export interface Ciudad {
@@ -125,6 +126,20 @@ export interface Volatilidad {
   emergencias: { de: number; a: number; categoria: string; cuota: number }[]
 }
 
+export interface MatrizTransferencia {
+  categorias: string[]
+  media: number[][]
+  p05: number[][]
+  p95: number[][]
+  kappa_media: number
+  ess_min: number
+  rhat_max: number
+  n_puestos: number
+}
+
+/** `transferencia.json`: un par de elecciones por clave (ver pipeline/transferencia.py:PARES). */
+export type TransferenciaOut = Record<string, MatrizTransferencia>
+
 export interface Pronostico {
   generado: string
   eleccion: string
@@ -155,6 +170,7 @@ export interface Pronostico {
     listas: ListaPronostico[]
     escenarios: Record<string, Record<string, Distribucion>>
     blanco: Distribucion
+    matriz_usada: string | null
   }
   backtest: {
     volatilidad_previa: Volatilidad
@@ -185,6 +201,7 @@ export interface Pronostico {
       dentro_80: boolean
       dentro_95: boolean
     }[]
+    matriz_usada: string | null
   }
 }
 
@@ -197,11 +214,35 @@ export interface CapaFila {
   margen: number | null
 }
 
+export interface CapaConsulta {
+  listas: Record<string, number>
+  ganador: string | null
+  votos_totales: number
+}
+
+export interface TramoEdad {
+  tramo: string
+  hombres_pct: number
+  mujeres_pct: number
+}
+
+export interface CapaEdad {
+  potencial: number
+  pct_18_30: number
+  pct_60_mas: number
+  mediana: number | null
+  hombres_pct: number | null
+  mujeres_pct: number | null
+  piramide: TramoEdad[]
+}
+
 export interface Capas {
   upz: Record<string, Record<string, CapaFila | { cuotas: Record<string, number>; blanco: number; ganador: string }>>
   localidad: Record<string, Record<string, CapaFila>>
   lisa: Record<string, Record<string, string>>
   moran: Record<string, { I: number; p?: number }>
+  consulta_2026: Record<string, CapaConsulta>
+  edades: { upz: Record<string, CapaEdad>; localidad: Record<string, CapaEdad> }
 }
 
 export interface Puestos {
@@ -259,3 +300,17 @@ export interface Simulaciones {
   listas: string[]
   curules: number[][]
 }
+
+/** `escenarios_ia.json`: hipótesis declaradas en `reference/escenarios/*.yaml` (Fase 3), re-simuladas
+ * con el mismo motor del pronóstico base. Etiquetadas siempre como escenario, nunca el caso por defecto. */
+export interface EscenarioIA {
+  id: string
+  nombre: string
+  descripcion: string
+  familias: Record<string, DistCurules>
+  listas_nuevas: { id: string; nombre: string; curules: DistCurules | null }[]
+  cuotas: Record<string, number>
+  cuotas_ajustadas: Record<string, number>
+}
+
+export type EscenariosIAOut = Record<string, EscenarioIA>

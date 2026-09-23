@@ -2,7 +2,7 @@ import { Check } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Callout, Card, CardTitle, Dot, SectionHeader } from '../components/ui'
 import { dec, num, pct } from '../lib/format'
-import type { Pronostico } from '../lib/types'
+import type { EscenariosIAOut, Pronostico, TransferenciaOut } from '../lib/types'
 import { useJson, useMeta } from '../lib/useJson'
 
 interface Calidad {
@@ -41,6 +41,8 @@ export default function Metodologia() {
   const { famPorId } = useMeta()
   const cal = useJson<Calidad>('calidad.json')
   const pro = useJson<Pronostico>('pronostico.json')
+  const trans = useJson<TransferenciaOut>('transferencia.json')
+  const escenariosIA = useJson<EscenariosIAOut>('escenarios_ia.json')
   const [eleccionXw, setEleccionXw] = useState('camara_2026')
   const xw = useMemo(() => cal.crosswalk.filter((r) => r.eleccion === eleccionXw).sort((a, b) => b.votos_lista - a.votos_lista), [cal, eleccionXw])
   const v = pro.pronostico.volatilidad
@@ -222,9 +224,11 @@ export default function Metodologia() {
               calculan después, lista por lista.
             </p>
             <p>
-              <strong className="text-ink">Centro.</strong> Se compararon tres reglas pronosticando 2023 con información previa: repetir el Concejo anterior, trasladar el cambio de la
-              Cámara (swing uniforme) y transferirlo en escala logit con un coeficiente κ. La elegida fue <em>{pro.pronostico.nombre_regla.toLowerCase()}</em>, la de menor error
-              ({dec(pro.backtest.metricas[pro.backtest.elegido].mae_pp, 2)} puntos por familia).
+              <strong className="text-ink">Centro.</strong> Se comparan cuatro reglas pronosticando 2023 con información previa: repetir el Concejo anterior, trasladar el cambio de la
+              Cámara (swing uniforme), transferirlo en escala logit con un coeficiente κ, y una matriz de transferencia entre familias estimada por inferencia ecológica bayesiana
+              (regresión ecológica con verosimilitud Dirichlet-Multinomial sobre los puestos, ver <a className="link-underline" href="#matriz-transferencia">más abajo</a>). La elegida
+              fue <em>{pro.pronostico.nombre_regla.toLowerCase()}</em>, la de menor error ({dec(pro.backtest.metricas[pro.backtest.elegido].mae_pp, 2)} puntos por familia); las demás
+              quedan disponibles como escenarios alternativos.
             </p>
             <p>
               <strong className="text-ink">Incertidumbre.</strong> Los cambios logit de las familias establecidas entre 2011, 2015, 2019 y 2023 ({v.n} observaciones) se ajustan por
@@ -256,6 +260,113 @@ export default function Metodologia() {
         </div>
       </Card>
 
+      <Card className="mt-5 scroll-mt-6">
+        <span id="matriz-transferencia" className="-mt-6 block h-0" aria-hidden />
+        <CardTitle
+          title="5 · Matriz de transferencia entre familias"
+          subtitle="La pregunta que no responde el swing uniforme: ¿a dónde se va el voto cuando una familia pierde fuerza?"
+        />
+        {trans ? (
+          <>
+            <p className="text-[14px] leading-relaxed text-ink-2">
+              Nunca se observa a una persona votando por una familia en una elección y por otra en la siguiente: solo se conocen, por puesto, los totales de cada familia en cada
+              elección. Para inferir el flujo entre familias se ajustó una regresión ecológica bayesiana: cada puesto aporta un término de verosimilitud Dirichlet-Multinomial
+              centrado en la mezcla esperada de destino —la combinación de las filas de la matriz global ponderada por la composición de origen de ese puesto—, con una
+              concentración κ que absorbe cuánto se aparta cada puesto de esa mezcla. Es una versión más liviana que la inferencia ecológica "RxC" completa (que muestrearía la
+              tabla cruzada latente de cada puesto), pero sigue siendo genuinamente bayesiana: hay un posterior completo sobre la matriz, no un solo número.
+            </p>
+            <p className="mt-3 text-[14px] leading-relaxed text-ink-2">
+              Se estimó tres veces, de forma independiente, porque el pronóstico y su backtest no pueden usar la misma matriz: la de Concejo 2019→2023 conoce la respuesta que
+              se le pediría "predecir" (usarla en el backtest sería circular), así que el backtest compite con una matriz de Cámara 2018→2022 —anterior a 2023, como las otras
+              tres reglas— y el pronóstico 2027 usa la más reciente, Cámara 2022→2026.
+            </p>
+            <div className="mt-4 grid gap-4 sm:grid-cols-3">
+              {(
+                [
+                  ['concejo_2019_2023', 'Concejo 2019 → 2023', 'Comparación publicada'],
+                  ['camara_2018_2022', 'Cámara 2018 → 2022', pro.backtest.matriz_usada === 'camara_2018_2022' ? 'Usada en el backtest' : 'Calculada para el backtest'],
+                  ['camara_2022_2026', 'Cámara 2022 → 2026', pro.pronostico.matriz_usada === 'camara_2022_2026' ? 'Usada en el pronóstico 2027' : 'Calculada para el pronóstico'],
+                ] as const
+              ).map(([key, label, rol]) => {
+                const m = trans[key]
+                return m ? (
+                  <div key={key} className="rounded-xl border border-hairline p-4">
+                    <p className="eyebrow">{label}</p>
+                    <p className="text-[11px] text-muted">{rol}</p>
+                    <p className="mt-1 text-[13px] text-muted">
+                      {num(m.n_puestos)} puestos · κ≈{dec(m.kappa_media, 0)} · R-hat máx {dec(m.rhat_max, 3)} · ESS mín {dec(m.ess_min, 0)}
+                    </p>
+                    <p className="mt-3 text-[12px] font-semibold text-ink-2">Se queda en la misma familia</p>
+                    <ul className="mt-1.5 space-y-1">
+                      {m.categorias.map((cat, i) => (
+                        <li key={cat} className="grid grid-cols-[7rem_1fr_2.5rem] items-center gap-2 text-[13px]">
+                          <span className="flex min-w-0 items-center gap-1.5 text-ink-2">
+                            <Dot familia={cat} size={8} />
+                            <span className="truncate">{cat === 'blanco' ? 'Blanco' : (famPorId[cat]?.nombre_corto ?? cat)}</span>
+                          </span>
+                          <span className="h-1.5 rounded-full bg-surface-2">
+                            <span className="block h-full rounded-full bg-ink" style={{ width: `${m.media[i][i] * 100}%` }} />
+                          </span>
+                          <span className="tabular text-right">{pct(m.media[i][i], 0)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null
+              })}
+            </div>
+            <div className="mt-4">
+              <Callout title="Límites de la inferencia ecológica">
+                La matriz completa —con intervalos de credibilidad al 90&nbsp;%, no solo el promedio— queda en{' '}
+                <code className="rounded bg-surface-2 px-1 py-0.5 text-[12px]">data/processed/transferencia.json</code>. Como toda inferencia ecológica, la identificación
+                depende de que la composición de cada puesto varíe lo suficiente entre elecciones: si todos los puestos votaran igual, ningún volumen de datos podría distinguir
+                "todos se quedan" de "todos rotan en la misma proporción". Por eso importan los intervalos, no solo el promedio. La matriz de Cámara 2018→2022 solo entra al
+                pronóstico base si mejora el error del backtest sobre 2023 frente a las otras tres reglas de arriba; si no lo mejora, queda disponible como escenario
+                alternativo, nunca oculta.
+              </Callout>
+            </div>
+          </>
+        ) : (
+          <p className="text-[14px] text-muted">
+            Todavía no se corrió <code className="rounded bg-surface-2 px-1 py-0.5 text-[12px]">python -m pipeline.transferencia</code> en este build de datos.
+          </p>
+        )}
+      </Card>
+
+      <Card className="mt-5">
+        <CardTitle
+          title="6 · Escenarios con hipótesis"
+          subtitle="El rol acotado de la IA: traduce una hipótesis en prosa a parámetros, nunca estima curules."
+        />
+        <p className="text-[14px] leading-relaxed text-ink-2">
+          Cuando alguien del equipo plantea una hipótesis política —"Alianza Verde se debilita y surge un partido nuevo", por ejemplo— esa hipótesis se traduce a
+          un archivo YAML declarativo en <code className="rounded bg-surface-2 px-1 py-0.5 text-[12px]">reference/escenarios/</code>: qué fracción del voto de
+          una familia se mueve a cuál otra o a qué lista nueva, con validación automática de que cada fila sume 1 (conservación de masa) antes de aceptarla. Un
+          humano revisa y aprueba ese YAML — es el artefacto auditable, no la prosa original ni el criterio de quien la tradujo.
+        </p>
+        <p className="mt-3 text-[14px] leading-relaxed text-ink-2">
+          A partir de ahí no hay nada especial: el escenario ajusta la cuota de entrada del mismo Monte Carlo y la misma cifra repartidora que calculan el
+          pronóstico base — la IA nunca estima un número de curules directamente. El resultado se muestra siempre rotulado como hipótesis, seleccionable, nunca
+          como el pronóstico por defecto (ese lo decide el backtest de la sección 5).
+        </p>
+        {Object.keys(escenariosIA).length > 0 ? (
+          <ul className="mt-4 space-y-1.5">
+            {Object.values(escenariosIA).map((e) => (
+              <li key={e.id} className="text-[13px]">
+                <span className="font-semibold text-ink">{e.nombre}</span>{' '}
+                <a className="link-underline text-muted" href="/pronostico">
+                  ver en el pronóstico →
+                </a>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-3 text-[14px] text-muted">
+            Todavía no hay ningún YAML en <code className="rounded bg-surface-2 px-1 py-0.5 text-[12px]">reference/escenarios/</code> en este build de datos.
+          </p>
+        )}
+      </Card>
+
       <Card className="mt-5">
         <CardTitle title="Reproducir" subtitle="Requisitos: Python 3.12 y Node 20 o superior." />
         <pre className="overflow-x-auto rounded-xl bg-surface-2 p-4 text-[12px] leading-relaxed text-ink">
@@ -263,7 +374,9 @@ export default function Metodologia() {
 python -m pipeline.ingest        # limpieza del Concejo y del censo
 python -m pipeline.aggregate     # familias, geocodificación, curules (valida contra lo oficial)
 python -m pipeline.analysis      # participación, fragmentación, LISA, candidatos, demografía
+python -m pipeline.transferencia # matriz de transferencia bayesiana (opcional, tarda; MCMC sobre los puestos)
 python -m pipeline.model         # backtest 2023 + pronóstico 2027
+python -m pipeline.escenarios    # escenarios con hipótesis (opcional; requiere pipeline.model primero)
 python -m pipeline.export        # JSON para la web
 pytest && (cd web && npx vitest run && npm run build)`}
         </pre>

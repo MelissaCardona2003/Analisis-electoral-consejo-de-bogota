@@ -109,14 +109,46 @@ def geocodificar(puestos: pd.DataFrame, pts: gpd.GeoDataFrame) -> pd.DataFrame:
     return pd.DataFrame(filas)
 
 
+def mediana_edad(fila: pd.Series) -> float | None:
+    """Mediana de edad estimada por interpolación lineal dentro de los tramos del censo.
+
+    "e60_mas" es un tramo abierto (61 y más): si la mediana cae ahí, no hay ancho conocido
+    para interpolar y se reporta el límite inferior del tramo (61) como cota, no como valor exacto.
+    """
+    conocido = float(sum(fila[c] for c in C.EDAD_COLS))
+    if conocido <= 0:
+        return None
+    objetivo = conocido / 2
+    acumulado = 0.0
+    for i, col in enumerate(C.EDAD_COLS):
+        siguiente = acumulado + fila[col]
+        if siguiente >= objetivo:
+            if col == "e60_mas" or fila[col] == 0:
+                return float(C.EDAD_BORDES[i])
+            ancho = C.EDAD_BORDES[i + 1] - C.EDAD_BORDES[i]
+            return C.EDAD_BORDES[i] + ancho * (objetivo - acumulado) / fila[col]
+        acumulado = siguiente
+    return float(C.EDAD_BORDES[-1])
+
+
 # ───────────────────────── principal ─────────────────────────
 
 def main() -> None:
     votos = cargar_votos()
     print(f"Votos cargados: {len(votos):,} filas · elecciones {sorted(votos['eleccion'].unique())}")
 
+    # Las consultas interpartidistas (corporación CONSULTAS) son coaliciones
+    # ad-hoc de varios partidos, no encajan en el crosswalk de las 9 familias
+    # políticas del Concejo/Congreso/Presidencial. Se excluyen del modelo de
+    # familias (de lo contrario `construir_crosswalk` no podría asignarles una
+    # familia y el chequeo de la línea de abajo lanzaría ValueError), pero SÍ
+    # participan en la geocodificación de puestos (línea "4."), porque
+    # comparten la misma infraestructura física de votación que congreso/
+    # presidencial 2026 y así se pueden ubicar en el mapa por UPZ.
+    modelo_votos = votos[votos["corporacion"] != "CONSULTAS"]
+
     # 1. Listas del Concejo (ids estables) y pesos de familia en 2023 para repartir coaliciones
-    conc = votos[votos["corporacion"] == "CONCEJO"].copy()
+    conc = modelo_votos[modelo_votos["corporacion"] == "CONCEJO"].copy()
     conc["anio"] = conc["eleccion"].str[-4:].astype(int)
     conc["lista_id"] = [CONCEJO_LISTAS.get((a, p)) for a, p in zip(conc["anio"], conc["partido_cod"])]
     partidistas = conc[conc["tipo"].isin(["lista", "candidato"])]
@@ -129,7 +161,7 @@ def main() -> None:
               .groupby("lista_id").max().to_dict())
 
     # 2. Crosswalk para elecciones externas
-    externas = votos[(votos["corporacion"] != "CONCEJO") & votos["tipo"].isin(["lista", "candidato"])]
+    externas = modelo_votos[(modelo_votos["corporacion"] != "CONCEJO") & modelo_votos["tipo"].isin(["lista", "candidato"])]
     listas_ext = (externas.groupby(["eleccion", "partido_cod"])
                   .agg(partido_nombre=("partido_nombre", lambda s: s.mode().iat[0]), votos=("votos", "sum"))
                   .reset_index())
@@ -149,13 +181,13 @@ def main() -> None:
 
     # 3. Votos por puesto × familia (incluye blanco/nulo/no marcado como categorías propias)
     w = crosswalk[["eleccion", "partido_cod", "familia_id", "peso"]]
-    part = votos[votos["tipo"].isin(["lista", "candidato"])].merge(w, on=["eleccion", "partido_cod"], how="left")
+    part = modelo_votos[modelo_votos["tipo"].isin(["lista", "candidato"])].merge(w, on=["eleccion", "partido_cod"], how="left")
     if part["familia_id"].isna().any():
         raise ValueError("Votos partidistas sin familia asignada")
     part["votos_f"] = part["votos"] * part["peso"]
     fam = part.groupby(["eleccion", "puesto_id", "familia_id"], as_index=False)["votos_f"].sum()
     fam = fam.rename(columns={"votos_f": "votos", "familia_id": "categoria"})
-    esp = (votos[~votos["tipo"].isin(["lista", "candidato"])].groupby(["eleccion", "puesto_id", "tipo"], as_index=False)
+    esp = (modelo_votos[~modelo_votos["tipo"].isin(["lista", "candidato"])].groupby(["eleccion", "puesto_id", "tipo"], as_index=False)
            ["votos"].sum().rename(columns={"tipo": "categoria"}))
     cat = pd.concat([fam, esp], ignore_index=True)
 
@@ -171,6 +203,39 @@ def main() -> None:
 
     cat = cat.merge(geo[["eleccion", "puesto_id", "upz_cod", "localidad_cod", "confianza"]], on=["eleccion", "puesto_id"], how="left")
     cat.to_parquet(C.PROCESSED / "votos_puesto_categoria.parquet", index=False)
+
+    # 4.1 Consultas interpartidistas 2026 — agregado por UPZ para el mapa.
+    # Vive fuera del modelo de 9 familias (ver nota junto a `modelo_votos`),
+    # así que se agrega aparte por lista/coalición en vez de por familia.
+    consultas = votos[(votos["corporacion"] == "CONSULTAS") & votos["tipo"].isin(["lista", "candidato"])]
+    consultas = consultas.merge(geo[["eleccion", "puesto_id", "upz_cod"]], on=["eleccion", "puesto_id"], how="left")
+    consultas_upz = (consultas.dropna(subset=["upz_cod"])
+                     .groupby(["upz_cod", "partido_nombre"], as_index=False)["votos"].sum())
+    consultas_upz.to_parquet(C.PROCESSED / "consultas_2026_upz.parquet", index=False)
+    REPORTE["consultas_2026"] = {"upz_con_datos": int(consultas_upz["upz_cod"].nunique()),
+                                 "votos_totales": int(consultas_upz["votos"].sum())}
+
+    # 4.2 Estructura etaria por UPZ/localidad — coroplético y pirámide (estimada).
+    # El censo electoral trae sexo y edad como MARGINALES separadas por puesto
+    # (se sabe cuántos hombres/mujeres hay y cuántas personas hay en cada rango
+    # de edad, pero no el cruce sexo×edad). Agregar cada marginal por UPZ es un
+    # dato observado; la pirámide hombres/mujeres por tramo que arma `export.py`
+    # SÍ asume que la forma de la distribución de edad es igual entre sexos
+    # dentro de la UPZ, y se rotula como estimación en la capa exportada.
+    censo23 = pd.read_parquet(C.INTERIM / "censo_2023.parquet")
+    geo23 = geo[geo["eleccion"] == "concejo_2023"][["puesto_id", "upz_cod", "localidad_cod"]]
+    edad_puesto = censo23.merge(geo23, on="puesto_id", how="left").dropna(subset=["upz_cod"])
+    # excluye Corferias/reclusión: concentran votantes de toda la ciudad/país por trámite
+    # administrativo, no por residencia real (misma exclusión que analysis.py, ver C.ESPECIALES)
+    edad_puesto = edad_puesto[~edad_puesto["localidad_cod"].isin(C.ESPECIALES)]
+    cols_edad = C.EDAD_COLS + ["e_sin_fecha", "extranjero", "hombres", "mujeres", "otros", "potencial"]
+    for nombre_nivel, col_zona in [("upz", "upz_cod"), ("localidad", "localidad_cod")]:
+        agg = edad_puesto.groupby(col_zona, as_index=False)[cols_edad].sum().rename(columns={col_zona: "cod"})
+        agg["pct_18_30"] = (agg["e18_20"] + agg["e21_25"] + agg["e26_30"]) / agg["potencial"]
+        agg["pct_60_mas"] = agg["e60_mas"] / agg["potencial"]
+        agg["mediana"] = agg.apply(mediana_edad, axis=1)
+        agg.to_parquet(C.PROCESSED / f"edades_{nombre_nivel}.parquet", index=False)
+    REPORTE["edades_2023"] = {"puestos_con_upz": int(len(edad_puesto)), "potencial_total": int(edad_puesto["potencial"].sum())}
 
     # 5. Totales de ciudad por elección y categoría
     ciudad = cat.groupby(["eleccion", "categoria"], as_index=False)["votos"].sum()

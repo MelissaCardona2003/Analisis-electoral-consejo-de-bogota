@@ -48,3 +48,13 @@ CURULES_OFICIALES = {
 
 SEED = 20271031
 N_SIMULACIONES = 10_000
+
+# Tramos de edad del censo electoral (Registraduría), en orden; "e60_mas" es abierto (61 y más).
+EDAD_COLS = ["e18_20", "e21_25", "e26_30", "e31_35", "e36_40", "e41_45", "e46_50", "e51_55", "e56_60", "e60_mas"]
+EDAD_BORDES = [18, 21, 26, 31, 36, 41, 46, 51, 56, 61]  # límite inferior de cada tramo en EDAD_COLS
+
+# Localidades especiales (código de puesto): censo/feria de exposiciones (Corferias) y centros de
+# reclusión. Concentran votantes de todo el país/ciudad por un trámite administrativo, no por
+# residencia real: cuentan en los totales de ciudad pero se excluyen de cualquier mapa o análisis
+# geográfico (UPZ/localidad), porque su ubicación física no representa a quienes votan ahí.
+ESPECIALES = {90, 98}

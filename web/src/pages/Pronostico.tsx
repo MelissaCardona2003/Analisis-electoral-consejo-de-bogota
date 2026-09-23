@@ -3,13 +3,14 @@ import { useMemo, useRef, useState } from 'react'
 import { FloatingTip, TipRow, type TipState } from '../components/Tooltip'
 import { Callout, Card, CardTitle, Dot, SectionHeader, StatTile, famColor } from '../components/ui'
 import { compact, dec, num, pct } from '../lib/format'
-import type { DistCurules, Familia, Meta, Pronostico as TP, Simulaciones } from '../lib/types'
+import type { DistCurules, EscenariosIAOut, Familia, Meta, Pronostico as TP, Simulaciones } from '../lib/types'
 import { useJson, useMeta } from '../lib/useJson'
 
 const NOMBRE_ESCENARIO: Record<string, string> = {
   persistencia: 'Persistencia',
   swing_uniforme: 'Swing uniforme de Cámara 2026',
   transferencia: 'Transferencia desde Cámara (κ)',
+  transferencia_matriz: 'Matriz de transferencia (inferencia ecológica)',
   sin_lista_de_oviedo: 'Sin La Lista de Oviedo',
 }
 
@@ -17,6 +18,7 @@ export default function Pronostico() {
   const { familias, famPorId, meta } = useMeta()
   const pro = useJson<TP>('pronostico.json')
   const sims = useJson<Simulaciones>('simulaciones.json')
+  const escenariosIA = useJson<EscenariosIAOut>('escenarios_ia.json')
   const p = pro.pronostico
   const fams = [...p.familias].sort((a, b) => b.curules.media - a.curules.media)
   const K = Math.max(...p.familias.map((f) => Math.ceil(f.curules.p975))) + 2
@@ -69,6 +71,12 @@ export default function Pronostico() {
       <Card className="mt-5">
         <Escenarios p={p} familias={familias} />
       </Card>
+
+      {Object.keys(escenariosIA).length > 0 && (
+        <Card className="mt-5">
+          <EscenariosIA escenarios={escenariosIA} p={p} familias={familias} />
+        </Card>
+      )}
 
       <Card className="mt-5">
         <Backtest pro={pro} famPorId={famPorId} familias={familias} />
@@ -364,6 +372,90 @@ function Escenarios({ p, familias }: { p: TP['pronostico']; familias: Familia[] 
         El swing uniforme traslada al Concejo el cambio de cada familia en la Cámara entre 2022 y 2026; la transferencia aplica el coeficiente κ ={' '}
         {dec(p.kappa.kappa_mco, 2)} estimado entre 2018/2022 y 2019/2023. Ambos reflejan la ola del Centro Democrático y de Salvación Nacional en 2026, pero al
         proyectar 2023 fallaron más que la persistencia: el voto al Concejo depende de redes locales y candidaturas que la Cámara no captura.
+      </Callout>
+    </>
+  )
+}
+
+function EscenariosIA({
+  escenarios,
+  p,
+  familias,
+}: {
+  escenarios: EscenariosIAOut
+  p: TP['pronostico']
+  familias: Familia[]
+}) {
+  const central = Object.fromEntries(p.familias.map((f) => [f.id, f.curules]))
+  return (
+    <>
+      <CardTitle
+        title="Escenarios con hipótesis"
+        subtitle="Hipótesis políticas externas traducidas a parámetros del motor y simuladas con el mismo Monte Carlo del pronóstico — no compitieron en el backtest ni reemplazan el caso central."
+      />
+      <div className="space-y-6">
+        {Object.values(escenarios).map((e) => (
+          <div key={e.id}>
+            <p className="font-semibold text-ink">{e.nombre}</p>
+            <p className="mt-1 text-[13px] leading-relaxed text-muted">{e.descripcion}</p>
+            <div className="mt-3 overflow-x-auto">
+              <table className="tabular w-full min-w-[480px] text-[13px]">
+                <thead>
+                  <tr className="border-b border-hairline text-left text-[12px] text-muted">
+                    <th className="py-2 font-medium">Familia</th>
+                    <th className="py-2 text-right font-medium text-ink">Central</th>
+                    <th className="py-2 text-right font-medium">Con la hipótesis</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {familias.map((f) => {
+                    const base = Math.round(central[f.id]?.p50 ?? 0)
+                    const v = Math.round(e.familias[f.id]?.p50 ?? 0)
+                    const d = v - base
+                    return (
+                      <tr key={f.id} className="border-b border-hairline last:border-0">
+                        <td className="py-2">
+                          <span className="flex items-center gap-2">
+                            <Dot familia={f.id} size={8} />
+                            {f.nombre_corto}
+                          </span>
+                        </td>
+                        <td className="py-2 text-right font-semibold">{base}</td>
+                        <td className="py-2 text-right">
+                          {v}
+                          <span className={`ml-1.5 inline-block w-7 text-left text-[11px] ${d > 0 ? 'text-good' : d < 0 ? 'text-critical' : 'text-muted'}`}>
+                            {d > 0 ? `▲${d}` : d < 0 ? `▼${-d}` : '·'}
+                          </span>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                  {e.listas_nuevas.map(
+                    (l) =>
+                      l.curules && (
+                        <tr key={l.id} className="border-b border-hairline last:border-0">
+                          <td className="py-2">
+                            <span className="flex items-center gap-2">
+                              <Dot familia="otros" size={8} />
+                              {l.nombre}
+                            </span>
+                          </td>
+                          <td className="py-2 text-right text-muted">—</td>
+                          <td className="py-2 text-right font-semibold">{Math.round(l.curules.p50)}</td>
+                        </tr>
+                      ),
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ))}
+      </div>
+      <Callout title="Qué es esto y qué no es">
+        Esta hipótesis se tradujo a números concretos (a qué familias se mueve el voto, cuánto pesaría un movimiento nuevo) y se corrió por el mismo motor de Monte
+        Carlo y cifra repartidora que el pronóstico de arriba — el reparto de curules no lo estimó la IA, lo calculó el mismo modelo. Pero los números de entrada sí
+        son un supuesto externo, no una medición: no compitieron en el backtest de 2023 y no reemplazan el pronóstico central, que sigue siendo{' '}
+        {p.nombre_regla.toLowerCase()}.
       </Callout>
     </>
   )

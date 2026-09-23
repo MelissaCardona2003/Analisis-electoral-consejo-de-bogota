@@ -1,0 +1,24 @@
+# Traducción de la hipótesis completa de Dani (ver también dani_fragmentacion_2027.yaml y
+# dani_reorganizacion_2027.yaml) — este es su "escenario base": el más conservador de los tres.
+# Un humano debe revisar y ajustar los números antes de tratarlos como algo más que una ilustración.
+id: dani_base_2027
+nombre: "Base (hipótesis de Dani)"
+descripcion: >
+  Escenario base de la hipótesis de Dani: el Pacto Histórico se mantiene como una de las fuerzas
+  principales; Alianza Verde pierde una parte MODERADA de su electorado (sin una escisión formal
+  todavía); el Nuevo Liberalismo conserva representación pero reduce su votación; Centro Democrático
+  y Salvación Nacional compiten por separado (como ya ocurre en el modelo de datos, así que este
+  escenario no las toca); Cambio Radical y Partido de la U mantienen una representación limitada (no
+  se modelan aparte en esta versión: siguen agregadas en "otros", igual que en el resto del sitio).
+  Los números de abajo son ILUSTRATIVOS — traducen la dirección cualitativa del texto de Dani, no una
+  medición —, deben ajustarse con él antes de tratarlos como una apuesta informada.
+fuente: "hipótesis completa de Dani, sección 10 'Escenario base' y 11 'Hipótesis central' (texto recibido íntegro)"
+
+transferencia:
+  alianza_verde:
+    alianza_verde: 0.70   # pérdida moderada: se queda la mayoría
+    pacto_historico: 0.15
+    otros: 0.15
+multiplicadores:
+  nuevo_liberalismo: 0.85  # reduce su votación pero conserva representación
+  pacto_historico: 1.05    # se mantiene fuerte, leve beneficio de la dispersión ajena

@@ -1,0 +1,46 @@
+# Traducción de la hipótesis completa de Dani (texto recibido íntegro) — este es su "escenario de
+# alta fragmentación", el más extremo de los tres. Ver también dani_base_2027.yaml y
+# dani_reorganizacion_2027.yaml. Un humano debe revisar y ajustar los números antes de tratarlos
+# como algo más que una ilustración de la dirección cualitativa del texto.
+id: dani_fragmentacion_2027
+nombre: "Alta fragmentación (hipótesis de Dani)"
+descripcion: >
+  Escenario de alta fragmentación: surge un nuevo movimiento liderado por Claudia López que capta
+  votantes tradicionales de Alianza Verde, electores de centroizquierda, independientes y urbanos que
+  no se identifican con el Pacto Histórico; Alianza Verde pierde una proporción SIGNIFICATIVA de su
+  electorado (no solo hacia López, también hacia el Pacto y otros sectores); Dignidad y Compromiso
+  (con figuras como Jennifer Pedraza y dirigentes del MOIR) se consolida como otra fuerza del centro e
+  intenta superar el umbral, compitiendo por votantes de Verde, Nuevo Liberalismo e independientes; el
+  Nuevo Liberalismo rinde por debajo de 2023; el Pacto Histórico se beneficia de esa dispersión y de
+  mantener una base más cohesionada, y podría convertirse en la lista más votada. Los números de
+  abajo son ILUSTRATIVOS — traducen la dirección cualitativa del texto de Dani (sección 3: "pérdida
+  significativa", "el centro se divide entre cuatro o más listas"), no una medición —, deben ajustarse
+  con él antes de tratarlos como una apuesta informada.
+fuente: "hipótesis completa de Dani, secciones 2 (Alianza Verde), 3 (nuevo partido López), 4 (Dignidad y Compromiso), 5 (Nuevo Liberalismo), 6 (Pacto Histórico) y 10 (Escenario de alta fragmentación); texto recibido íntegro"
+
+# De lo que le queda a Alianza Verde DESPUÉS de lo que se llevan las listas nuevas (ver `desde` más
+# abajo — ahí, no aquí, se define cuánto de Verde se va a López y a Dignidad, para no restar el mismo
+# voto dos veces): cómo se reparte el resto entre quedarse, Pacto y otros.
+transferencia:
+  alianza_verde:
+    alianza_verde: 0.636   # se queda poco más de la mitad de lo que le queda tras las listas nuevas
+    pacto_historico: 0.182
+    otros: 0.182
+# nuevo_liberalismo NO lleva multiplicador propio aquí: el modelo de datos (matriz de transferencia,
+# sección 5 de Metodología) ya le proyecta una caída fuerte por su cuenta; añadirle un multiplicador
+# encima de eso, más lo que ya le restan `desde` de las listas nuevas de abajo, lo hundía a cero — más
+# de lo que dice el texto de Dani ("podría conservar representación, aunque no como fuerza principal").
+multiplicadores:
+  pacto_historico: 1.20        # principal beneficiario de la fragmentación del centro
+
+listas_nuevas:
+  - id: nuevo_partido_lopez
+    nombre: "Nuevo movimiento (Claudia López)"
+    cuota_prior: {media: 0.07, sd_log: 0.45}  # mediana ilustrativa; "capacidad de superar el umbral y competir por varias curules"
+    desde: {alianza_verde: 0.60, nuevo_liberalismo: 0.10, otros: 0.30}  # también centroizquierda e independientes, no solo Verde
+    familia_mostrar: otros
+  - id: dignidad_compromiso
+    nombre: "Dignidad y Compromiso"
+    cuota_prior: {media: 0.035, sd_log: 0.5}  # "posibilidad de superar el umbral", más pequeña que el movimiento de López
+    desde: {alianza_verde: 0.35, nuevo_liberalismo: 0.20, otros: 0.45}
+    familia_mostrar: otros

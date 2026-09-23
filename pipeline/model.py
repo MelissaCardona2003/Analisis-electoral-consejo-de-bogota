@@ -34,7 +34,8 @@ ALFA_DIRICHLET = 25.0
 N_MUESTRA_WEB = 2_000
 NOMBRES_REGLA = {"persistencia": "Persistencia (repetir el último Concejo)",
                  "swing_uniforme": "Swing uniforme de Cámara",
-                 "transferencia": "Transferencia logit desde Cámara (κ)"}
+                 "transferencia": "Transferencia logit desde Cámara (κ)",
+                 "transferencia_matriz": "Matriz de transferencia (inferencia ecológica bayesiana)"}
 rng = np.random.default_rng(C.SEED)
 
 
@@ -115,31 +116,88 @@ def conversion_camara_concejo(S: pd.DataFrame, camara: str, concejo: str) -> dic
             "por_familia": {c: float(v) for c, v in r.items()}}
 
 
-def centros(S: pd.DataFrame, base: str, leg0: str, leg1: str, kappa: dict) -> dict[str, np.ndarray]:
+def cargar_matriz_transferencia(nombre: str) -> tuple[np.ndarray | None, dict | None]:
+    """Carga la media posterior de la matriz de `pipeline.transferencia`, si ya se calculó.
+
+    Es una capa opcional del motor: si el archivo o el par todavía no existen (no se ha corrido
+    `python -m pipeline.transferencia`, que es lento), se omite la regla en vez de romper el resto
+    del pronóstico — la matriz solo debe entrar en producción cuando además gana el backtest.
+    """
+    path = C.PROCESSED / "transferencia.json"
+    if not path.exists():
+        return None, None
+    par = json.loads(path.read_text(encoding="utf-8")).get(nombre)
+    if par is None:
+        return None, None
+    T = np.array(par["media"])
+    if par["categorias"] != CATS:
+        idx = [par["categorias"].index(c) for c in CATS]
+        T = T[np.ix_(idx, idx)]
+    return T, par
+
+
+def centro_matriz(s: np.ndarray, T: np.ndarray) -> np.ndarray:
+    """Regla de centro por matriz de transferencia: nueva cuota = s @ T (fila origen -> columna destino)."""
+    return logit(normalizar(s @ T))
+
+
+def centros(S: pd.DataFrame, base: str, leg0: str, leg1: str, kappa: dict, matriz: np.ndarray | None = None) -> dict[str, np.ndarray]:
     s, c0, c1 = (S.loc[e, CATS].values.astype(float) for e in (base, leg0, leg1))
     elegibles = np.array([min(S.loc[leg0, c], S.loc[leg1, c], S.loc[base, c]) >= ESTABLECIDA for c in CATS])
     lofo = {f["categoria"]: f["kappa_sin_ella"] for f in kappa["familias"]}
     k = np.array([np.clip(lofo.get(c, kappa["kappa_mco"]), 0, 1) if elegibles[i] else 0.0 for i, c in enumerate(CATS)])
-    return {"persistencia": logit(s),
-            "swing_uniforme": logit(normalizar(np.clip(s + (c1 - c0), 0, None))),
-            "transferencia": logit(s) + k * (logit(c1) - logit(c0))}
+    out = {"persistencia": logit(s),
+           "swing_uniforme": logit(normalizar(np.clip(s + (c1 - c0), 0, None))),
+           "transferencia": logit(s) + k * (logit(c1) - logit(c0))}
+    if matriz is not None:
+        out["transferencia_matriz"] = centro_matriz(s, matriz)
+    return out
 
 
 # ───────────────────────── simulación ─────────────────────────
 
-def simular(mu: np.ndarray, ruido: tuple[float, float], estructura: list[dict], n: int, emergente: dict | None = None,
+TOPE_EMERGENTES = 0.7  # ninguna combinación de listas emergentes puede acaparar más del 70% de la ciudad
+
+
+def simular(mu: np.ndarray, ruido: tuple[float, float], estructura: list[dict], n: int, emergentes: list[dict] | None = None,
             dirichlet: bool = True):
     """Devuelve (cuotas por categoría (n, cats), cuotas por lista (n, L), curules (n, L), ids de lista).
 
     ``ruido`` = (grados de libertad, escala) de la t de Student en escala logit. Listas + blanco suman 1.
+
+    ``emergentes``: listas sin historial en el Concejo (cada una: id, cuota_base, mu_log, sd_log, y
+    opcionalmente ``desde``: un peso por familia de origen). Cada una reparte log-normal alrededor de su
+    cuota base. Sin ``desde`` se resta proporcionalmente de toda la ciudad (el comportamiento original,
+    pensado para una lista nueva sin narrativa de origen, como la Lista de Oviedo); con ``desde`` se resta
+    de las familias indicadas —p. ej. un partido que se narra como una escisión de una familia concreta—.
+    Con más de una emergente la suma se topa a ``TOPE_EMERGENTES`` y se reescala en conjunto, y la resta se
+    recalcula sobre la ciudad ANTES de restar ninguna (no de forma secuencial), para que la masa total siga
+    sumando 1 exacto pase lo que pase con los topes o con los clips de categorías que se queden en cero.
     """
     nu, escala = ruido
     eps = rng.standard_t(nu, (n, len(CATS))) * escala if escala > 0 else 0.0
     P = normalizar(inv_logit(mu[None, :] + eps))
-    e = None
-    if emergente:
-        e = np.clip(np.exp(rng.normal(emergente["mu_log"], emergente["sd_log"], n)) * emergente["cuota_base"], 0, 0.35)
-        P = P * (1 - e[:, None])
+    es: dict[str, np.ndarray] = {}
+    if emergentes:
+        crudo = {em["id"]: np.clip(np.exp(rng.normal(em["mu_log"], em["sd_log"], n)) * em["cuota_base"], 0, 0.35)
+                 for em in emergentes}
+        suma_cruda = sum(crudo.values())
+        factor = np.minimum(1.0, TOPE_EMERGENTES / np.maximum(suma_cruda, 1e-9))
+        es = {k: v * factor for k, v in crudo.items()}
+        resta = np.zeros_like(P)
+        for em in emergentes:
+            e = es[em["id"]]
+            if em.get("desde"):
+                w = np.zeros(len(CATS))
+                for fam, peso in em["desde"].items():
+                    w[IDX[fam]] = peso
+                w = w / w.sum()
+                resta += e[:, None] * w[None, :]
+            else:
+                resta += e[:, None] * P  # proporcional al tamaño actual de cada categoría
+        total_e = sum(es.values())
+        P = np.clip(P - resta, 0, None)
+        P = P / P.sum(axis=1, keepdims=True) * (1 - total_e)[:, None]  # exacto: el resto suma 1 - Σe
     ids, cuotas = [], []
     for fam in FAMILIA_IDS:
         ls = [l for l in estructura if l["familia"] == fam]
@@ -151,17 +209,26 @@ def simular(mu: np.ndarray, ruido: tuple[float, float], estructura: list[dict], 
         for j, l in enumerate(ls):
             ids.append(l["id"])
             cuotas.append(P[:, IDX[fam]] * W[:, j])
-    if e is not None:
-        ids.append(emergente["id"])
+    for eid, e in es.items():
+        ids.append(eid)
         cuotas.append(e)
     L = np.column_stack(cuotas)
     curules = cifra_repartidora_lote(L * 1e6, P[:, IDX["blanco"]] * 1e6)
     return P, L, curules, ids
 
 
-def curules_por_familia(cur: np.ndarray, ids: list[str]) -> np.ndarray:
-    return np.column_stack([cur[:, [j for j, i in enumerate(ids) if LISTAS_INFO[i][1] == f]].sum(axis=1)
-                            if any(LISTAS_INFO[i][1] == f for i in ids) else np.zeros(len(cur), dtype=int)
+def _familia_de(i: str, familia_extra: dict[str, str] | None = None) -> str:
+    """Familia de una lista para agregarla en la UI. ``familia_extra`` cubre listas emergentes de un
+    escenario que no están en `LISTAS_INFO` (partidos reales) por no existir todavía — p. ej. un partido
+    nuevo hipotético. Sin declarar, se cuentan en "otros", la misma convención que ya usa el motor para
+    movimientos independientes sin historial (ver `con_toda_por_bogota` en partidos.py).
+    """
+    return LISTAS_INFO[i][1] if i in LISTAS_INFO else (familia_extra or {}).get(i, "otros")
+
+
+def curules_por_familia(cur: np.ndarray, ids: list[str], familia_extra: dict[str, str] | None = None) -> np.ndarray:
+    return np.column_stack([cur[:, [j for j, i in enumerate(ids) if _familia_de(i, familia_extra) == f]].sum(axis=1)
+                            if any(_familia_de(i, familia_extra) == f for i in ids) else np.zeros(len(cur), dtype=int)
                             for f in FAMILIA_IDS])
 
 
@@ -181,7 +248,12 @@ def backtest(S: pd.DataFrame, listas: pd.DataFrame, n: int) -> dict:
     vol = calibrar_volatilidad(S, [(2011, 2015), (2015, 2019)])  # solo transiciones previas a 2023
     kap = calibrar_kappa(S, "camara_2018", "camara_2022", "concejo_2019", "concejo_2023")
     real = S.loc["concejo_2023", CATS].values.astype(float)
-    reglas = centros(S, "concejo_2019", "camara_2018", "camara_2022", kap)
+    # OJO: la matriz concejo_2019_2023 NO puede usarse aquí — se estimó CON el resultado real de
+    # 2023, así que "predecir" con ella sería circular (igual que sería circular si `kap` no usara
+    # leave-one-out). Para competir limpio contra las otras tres reglas, que solo usan información
+    # anterior a 2023, se usa la matriz Cámara 2018→2022: el mismo par pre-2023 que ya usa `kap`.
+    T_bt, _ = cargar_matriz_transferencia("camara_2018_2022")
+    reglas = centros(S, "concejo_2019", "camara_2018", "camara_2022", kap, matriz=T_bt)
 
     # listas inscritas en 2023; peso dentro de la familia según 2019 (listas nuevas: promedio de su familia o igualitario)
     L23 = listas[listas["anio"] == 2023]
@@ -224,7 +296,8 @@ def backtest(S: pd.DataFrame, listas: pd.DataFrame, n: int) -> dict:
     return {"volatilidad_previa": {k: v for k, v in vol.items() if k != "cambios"}, "kappa": kap, "metricas": metricas,
             "elegido": elegido, "cobertura_cuotas_80": float(np.mean(cob80)), "cobertura_cuotas_95": float(np.mean(cob95)),
             "cobertura_curules_80": float(np.mean([d["dentro_80"] for d in fam_det])),
-            "cobertura_curules_95": float(np.mean([d["dentro_95"] for d in fam_det])), "familias": fam_det}
+            "cobertura_curules_95": float(np.mean([d["dentro_95"] for d in fam_det])), "familias": fam_det,
+            "matriz_usada": "camara_2018_2022" if T_bt is not None else None}
 
 
 # ───────────────────────── pronóstico 2027 ─────────────────────────
@@ -242,7 +315,10 @@ def pronostico(S: pd.DataFrame, listas: pd.DataFrame, n: int, elegido: str) -> d
     kap = calibrar_kappa(S, "camara_2018", "camara_2022", "concejo_2019", "concejo_2023")
     conv = conversion_camara_concejo(S, "camara_2022", "concejo_2023")
     kap_2027 = {**kap, "familias": []}  # para 2027 se aplica el κ de MCO a toda familia elegible
-    reglas = centros(S, "concejo_2023", "camara_2022", "camara_2026", kap_2027)
+    # el pronóstico usa la matriz Cámara 2022→2026 (no hay una que termine en 2027): mismo supuesto
+    # que ya hace la regla `transferencia` de κ, que también traslada el cambio observado en Cámara.
+    T_fc, _ = cargar_matriz_transferencia("camara_2022_2026")
+    reglas = centros(S, "concejo_2023", "camara_2022", "camara_2026", kap_2027, matriz=T_fc)
     ruido = (vol["nu"], vol["escala_t"])
     s23 = S.loc["concejo_2023", CATS].values.astype(float)
 
@@ -251,9 +327,9 @@ def pronostico(S: pd.DataFrame, listas: pd.DataFrame, n: int, elegido: str) -> d
     emergente = {"id": "con_toda_por_bogota", "cuota_base": cuota_lista("camara_2026", "01044"),
                  "mu_log": conv["mu_log"], "sd_log": conv["sd_log"]}
 
-    P, Lc, cur, ids = simular(reglas[elegido], ruido, estructura, n, emergente)
+    P, Lc, cur, ids = simular(reglas[elegido], ruido, estructura, n, [emergente])
     F = curules_por_familia(cur, ids)
-    cuota_fam = np.column_stack([Lc[:, [j for j, i in enumerate(ids) if LISTAS_INFO[i][1] == f]].sum(axis=1) for f in FAMILIA_IDS])
+    cuota_fam = np.column_stack([Lc[:, [j for j, i in enumerate(ids) if _familia_de(i) == f]].sum(axis=1) for f in FAMILIA_IDS])
     mayor = F.argmax(axis=1)
     empate = (F == F.max(axis=1, keepdims=True)).sum(axis=1) > 1
 
@@ -269,7 +345,7 @@ def pronostico(S: pd.DataFrame, listas: pd.DataFrame, n: int, elegido: str) -> d
                 "curules_2023": int(fam23.get(f, 0)), "cuota_camara_2026": float(c26[f])} for k, f in enumerate(FAMILIA_IDS)]
 
     escenarios = {}
-    variantes = {clave: (mu_r, emergente) for clave, mu_r in reglas.items() if clave != elegido}
+    variantes = {clave: (mu_r, [emergente]) for clave, mu_r in reglas.items() if clave != elegido}
     variantes["sin_lista_de_oviedo"] = (reglas[elegido], None)
     for clave, (mu_r, emerg) in variantes.items():
         _, _, ce, ide = simular(mu_r, ruido, estructura, n // 2, emerg)
@@ -282,6 +358,7 @@ def pronostico(S: pd.DataFrame, listas: pd.DataFrame, n: int, elegido: str) -> d
             "centro_cuotas": {c: float(v) for c, v in zip(CATS, normalizar(inv_logit(reglas[elegido])))},
             "familias": fam_out, "listas": listas_out, "escenarios": escenarios,
             "blanco": resumen_distribucion(P[:, IDX["blanco"]]),
+            "matriz_usada": "camara_2022_2026" if T_fc is not None else None,
             "muestra": {"listas": ids, "curules": cur[muestra].astype(int).tolist()}}
 
 

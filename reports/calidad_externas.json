@@ -95,5 +95,25 @@
         }
       }
     }
+  },
+  "consulta_2026": {
+    "archivo": "mmvPRECONTEOCongreso2026/CNS_MMV_9999.txt",
+    "formato": "ancho fijo (PRECONTEO)",
+    "filas_bogota_fuente": 216825,
+    "listas": [
+      "CONSULTA DE LAS SOLUCIONES: SALUD, SEGURIDAD Y EDUCACIÓN",
+      "FRENTE POR LA VIDA",
+      "LA GRAN CONSULTA POR COLOMBIA"
+    ],
+    "resumen": {
+      "consulta_2026": {
+        "puestos": 1083,
+        "votos_por_tipo": {
+          "candidato": 1655005,
+          "no_marcado": 37943,
+          "nulo": 111557
+        }
+      }
+    }
   }
 }
