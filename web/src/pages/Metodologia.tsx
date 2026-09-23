@@ -224,19 +224,24 @@ export default function Metodologia() {
               calculan después, lista por lista.
             </p>
             <p>
-              <strong className="text-ink">Centro.</strong> Se comparan cinco reglas pronosticando 2023 con información previa: repetir el Concejo anterior, trasladar el cambio de la
-              Cámara (swing uniforme), transferirlo en escala logit con un coeficiente κ (una vez calibrado con Cámara y otra vez con la primera vuelta presidencial), y una matriz de
-              transferencia entre familias estimada por inferencia ecológica bayesiana (regresión ecológica con verosimilitud Dirichlet-Multinomial sobre los puestos, ver{' '}
-              <a className="link-underline" href="#matriz-transferencia">más abajo</a>). La elegida fue <em>{pro.pronostico.nombre_regla.toLowerCase()}</em>, la de menor error (
-              {dec(pro.backtest.metricas[pro.backtest.elegido].mae_pp, 2)} puntos por familia); las demás quedan disponibles como escenarios alternativos. La regla presidencial, con los
-              datos actuales, empata exactamente con persistencia: solo 4 de las 10 categorías tienen candidatura presidencial propia comparable en las cuatro elecciones necesarias, y la
-              relación estimada entre el cambio presidencial y el cambio del Concejo sale de signo negativo — la salvaguarda que ya usa la regla de κ (nunca amplificar en la dirección
-              contraria) la deja en cero. No se relajó esa salvaguarda para forzar que la regla "gane": se documenta el resultado tal como salió.
+              <strong className="text-ink">Centro.</strong> Se comparan seis reglas pronosticando 2023 con información previa: repetir el Concejo anterior, trasladar el cambio de la
+              Cámara (swing uniforme), transferirlo en escala logit con un coeficiente κ (calibrado una vez con Cámara y otra vez con la primera vuelta presidencial), y una matriz de
+              transferencia entre familias estimada por inferencia ecológica bayesiana —también dos veces, Cámara y Presidencial— (regresión ecológica con verosimilitud
+              Dirichlet-Multinomial sobre los puestos, ver <a className="link-underline" href="#matriz-transferencia">más abajo</a>). La elegida fue{' '}
+              <em>{pro.pronostico.nombre_regla.toLowerCase()}</em>, la de menor error ({dec(pro.backtest.metricas[pro.backtest.elegido].mae_pp, 2)} puntos por familia); las demás quedan
+              disponibles como escenarios alternativos. La regla presidencial de κ, con los datos actuales, empata exactamente con persistencia: solo 4 de las 10 categorías tienen
+              candidatura presidencial propia comparable en las cuatro elecciones necesarias, y la relación estimada entre el cambio presidencial y el cambio del Concejo sale de signo
+              negativo — la salvaguarda que ya usa la regla de κ (nunca amplificar en la dirección contraria) la deja en cero. No se relajó esa salvaguarda para forzar que la regla
+              "gane": se documenta el resultado tal como salió. La matriz presidencial no tiene ese mismo límite (no promedia un solo coeficiente, estima una fila completa por
+              puesto), así que si el giro Pacto/Centro Democrático/Salvación Nacional de 2022→2026 es un patrón real y no ruido, es en esa regla donde debería notarse.
             </p>
             <p>
               <strong className="text-ink">Incertidumbre.</strong> Los cambios logit de las familias establecidas entre 2011, 2015, 2019 y 2023 ({v.n} observaciones) se ajustan por
               máxima verosimilitud a una t de Student centrada en cero: ν = {dec(v.nu, 1)} grados de libertad y escala {dec(v.escala_t, 3)}. Las colas pesadas permiten choques como
-              el del Nuevo Liberalismo en 2023.
+              el del Nuevo Liberalismo en 2023. Esa escala se recalibra después: el backtest mide qué tan seguido el resultado real de 2023 cae fuera de sus propios intervalos y, si
+              se queda corto, ensancha la escala hasta que la cobertura empírica del backtest coincida con la nominal (calibración tipo conforme, nunca al revés — nunca angosta un
+              intervalo). El mismo factor (×{dec(pro.pronostico.factor_calibracion, 2)} esta corrida) se traslada al pronóstico 2027: la escala final usada es{' '}
+              {dec(pro.pronostico.escala_calibrada, 3)}, no la {dec(v.escala_t, 3)} de arriba sin corregir.
             </p>
           </div>
           <div className="space-y-4">
@@ -279,16 +284,18 @@ export default function Metodologia() {
               tabla cruzada latente de cada puesto), pero sigue siendo genuinamente bayesiana: hay un posterior completo sobre la matriz, no un solo número.
             </p>
             <p className="mt-3 text-[14px] leading-relaxed text-ink-2">
-              Se estimó tres veces, de forma independiente, porque el pronóstico y su backtest no pueden usar la misma matriz: la de Concejo 2019→2023 conoce la respuesta que
-              se le pediría "predecir" (usarla en el backtest sería circular), así que el backtest compite con una matriz de Cámara 2018→2022 —anterior a 2023, como las otras
-              tres reglas— y el pronóstico 2027 usa la más reciente, Cámara 2022→2026.
+              Se estimó cinco veces, de forma independiente, porque el pronóstico y su backtest no pueden usar la misma matriz: la de Concejo 2019→2023 conoce la respuesta que
+              se le pediría "predecir" (usarla en el backtest sería circular), así que el backtest compite con matrices de Cámara 2018→2022 y de Presidencial 2018→2022 —ambas
+              anteriores a 2023, como las otras reglas— y el pronóstico 2027 usa las más recientes, Cámara 2022→2026 y Presidencial 2022→2026.
             </p>
             <div className="mt-4 grid gap-4 sm:grid-cols-3">
               {(
                 [
                   ['concejo_2019_2023', 'Concejo 2019 → 2023', 'Comparación publicada'],
-                  ['camara_2018_2022', 'Cámara 2018 → 2022', pro.backtest.matriz_usada === 'camara_2018_2022' ? 'Usada en el backtest' : 'Calculada para el backtest'],
-                  ['camara_2022_2026', 'Cámara 2022 → 2026', pro.pronostico.matriz_usada === 'camara_2022_2026' ? 'Usada en el pronóstico 2027' : 'Calculada para el pronóstico'],
+                  ['camara_2018_2022', 'Cámara 2018 → 2022', pro.backtest.elegido === 'transferencia_matriz' ? 'Usada en el backtest' : 'Calculada para el backtest'],
+                  ['camara_2022_2026', 'Cámara 2022 → 2026', pro.backtest.elegido === 'transferencia_matriz' ? 'Usada en el pronóstico 2027' : 'Calculada para el pronóstico'],
+                  ['presidente_2018_2022', 'Presidencial 2018 → 2022', pro.backtest.elegido === 'transferencia_matriz_presidencial' ? 'Usada en el backtest' : 'Calculada para el backtest'],
+                  ['presidente_2022_2026', 'Presidencial 2022 → 2026', pro.backtest.elegido === 'transferencia_matriz_presidencial' ? 'Usada en el pronóstico 2027' : 'Calculada para el pronóstico'],
                 ] as const
               ).map(([key, label, rol]) => {
                 const m = trans[key]
@@ -323,9 +330,9 @@ export default function Metodologia() {
                 La matriz completa —con intervalos de credibilidad al 90&nbsp;%, no solo el promedio— queda en{' '}
                 <code className="rounded bg-surface-2 px-1 py-0.5 text-[12px]">data/processed/transferencia.json</code>. Como toda inferencia ecológica, la identificación
                 depende de que la composición de cada puesto varíe lo suficiente entre elecciones: si todos los puestos votaran igual, ningún volumen de datos podría distinguir
-                "todos se quedan" de "todos rotan en la misma proporción". Por eso importan los intervalos, no solo el promedio. La matriz de Cámara 2018→2022 solo entra al
-                pronóstico base si mejora el error del backtest sobre 2023 frente a las otras cuatro reglas de arriba; si no lo mejora, queda disponible como escenario
-                alternativo, nunca oculta.
+                "todos se quedan" de "todos rotan en la misma proporción". Por eso importan los intervalos, no solo el promedio. Cada matriz de backtest (Cámara y Presidencial,
+                2018→2022) compite contra las demás reglas en pie de igualdad: solo entra al pronóstico base la que tenga menor error sobre 2023; las que no ganan quedan
+                disponibles como escenario alternativo, nunca ocultas.
               </Callout>
             </div>
           </>

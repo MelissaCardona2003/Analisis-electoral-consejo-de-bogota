@@ -171,6 +171,8 @@ export interface Pronostico {
     escenarios: Record<string, Record<string, Distribucion>>
     blanco: Distribucion
     matriz_usada: string | null
+    factor_calibracion: number
+    escala_calibrada: number
   }
   backtest: {
     volatilidad_previa: Volatilidad
@@ -202,6 +204,8 @@ export interface Pronostico {
       dentro_95: boolean
     }[]
     matriz_usada: string | null
+    factor_calibracion: number
+    escala_calibrada: number
   }
 }
 

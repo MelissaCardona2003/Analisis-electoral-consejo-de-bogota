@@ -36,7 +36,8 @@ NOMBRES_REGLA = {"persistencia": "Persistencia (repetir el último Concejo)",
                  "swing_uniforme": "Swing uniforme de Cámara",
                  "transferencia": "Transferencia logit desde Cámara (κ)",
                  "transferencia_matriz": "Matriz de transferencia (inferencia ecológica bayesiana)",
-                 "transferencia_presidencial": "Transferencia logit desde Presidencial (κ)"}
+                 "transferencia_presidencial": "Transferencia logit desde Presidencial (κ)",
+                 "transferencia_matriz_presidencial": "Matriz de transferencia presidencial (inferencia ecológica bayesiana)"}
 rng = np.random.default_rng(C.SEED)
 
 
@@ -93,6 +94,31 @@ def calibrar_volatilidad(S: pd.DataFrame, transiciones: list[tuple[int, int]]) -
             "nu": float(nu), "escala_t": float(escala), "n": int(len(x)), "cambios": cambios, "emergencias": emergencias}
 
 
+def calibrar_escala(real: np.ndarray, mu: np.ndarray, nu: float, escala: float, nivel: float = 0.8) -> float:
+    """Factor de inflación de la escala de la t de Student, calibrado tipo conformal contra el
+    resultado real de 2023 — la corrección "de verdad" al problema de calibración del que habla el
+    artículo de TypeSafe/Jev (RLCD para LLMs no aplica aquí; esto es la versión de la misma idea con
+    las herramientas que ya tiene el modelo: t de Student + backtest).
+
+    Con solo ~10 categorías y un único año de backtest, contar cuántas caen dentro del intervalo
+    (la cobertura binaria que ya se reporta) es demasiado ruidoso para calibrar directo — cada
+    categoría solo puede sumar o restar ~11 puntos porcentuales de cobertura. En cambio, para cada
+    categoría se mide CUÁNTO habría que ensanchar la escala para que su propio residuo real hubiera
+    quedado justo dentro del intervalo al ``nivel`` pedido, y se toma el percentil ``nivel`` de esos
+    anchos — el mismo principio que la predicción conforme (usar los residuos de un conjunto de
+    calibración para fijar el ancho del intervalo, en vez de solo contar aciertos).
+
+    Nunca reduce la escala por debajo de la ya ajustada por máxima verosimilitud: con un solo año de
+    backtest, un factor <1 es más probable que sea ruido de muestra pequeña que evidencia real de
+    sobre-dispersión, y usar esta corrección para hacer los intervalos MÁS angostos sería el error
+    contrario al que se busca corregir.
+    """
+    resid = np.abs(logit(real) - mu)
+    q_nominal = stats.t.ppf(0.5 + nivel / 2, nu)
+    factor = float(np.quantile(resid / escala / q_nominal, nivel))
+    return max(factor, 1.0)
+
+
 def calibrar_kappa(S: pd.DataFrame, leg0: str, leg1: str, base: str, obj: str) -> dict:
     ok = [c for c in CATS if min(S.loc[e, c] for e in (leg0, leg1, base, obj)) >= ESTABLECIDA]
     x = logit(S.loc[leg1, ok]) - logit(S.loc[leg0, ok])
@@ -143,7 +169,8 @@ def centro_matriz(s: np.ndarray, T: np.ndarray) -> np.ndarray:
 
 
 def centros(S: pd.DataFrame, base: str, leg0: str, leg1: str, kappa: dict, matriz: np.ndarray | None = None,
-            leg0_pres: str | None = None, leg1_pres: str | None = None, kappa_pres: dict | None = None) -> dict[str, np.ndarray]:
+            leg0_pres: str | None = None, leg1_pres: str | None = None, kappa_pres: dict | None = None,
+            matriz_pres: np.ndarray | None = None) -> dict[str, np.ndarray]:
     s, c0, c1 = (S.loc[e, CATS].values.astype(float) for e in (base, leg0, leg1))
     elegibles = np.array([min(S.loc[leg0, c], S.loc[leg1, c], S.loc[base, c]) >= ESTABLECIDA for c in CATS])
     lofo = {f["categoria"]: f["kappa_sin_ella"] for f in kappa["familias"]}
@@ -162,6 +189,8 @@ def centros(S: pd.DataFrame, base: str, leg0: str, leg1: str, kappa: dict, matri
         lofo_p = {f["categoria"]: f["kappa_sin_ella"] for f in kappa_pres["familias"]}
         k_p = np.array([np.clip(lofo_p.get(c, kappa_pres["kappa_mco"]), 0, 1) if elegibles_p[i] else 0.0 for i, c in enumerate(CATS)])
         out["transferencia_presidencial"] = logit(s) + k_p * (logit(c1p) - logit(c0p))
+    if matriz_pres is not None:
+        out["transferencia_matriz_presidencial"] = centro_matriz(s, matriz_pres)
     return out
 
 
@@ -269,8 +298,10 @@ def backtest(S: pd.DataFrame, listas: pd.DataFrame, n: int) -> dict:
     # leave-one-out). Para competir limpio contra las otras tres reglas, que solo usan información
     # anterior a 2023, se usa la matriz Cámara 2018→2022: el mismo par pre-2023 que ya usa `kap`.
     T_bt, _ = cargar_matriz_transferencia("camara_2018_2022")
+    T_bt_pres, _ = cargar_matriz_transferencia("presidente_2018_2022")
     reglas = centros(S, "concejo_2019", "camara_2018", "camara_2022", kap, matriz=T_bt,
-                     leg0_pres="presidente_2018", leg1_pres="presidente_2022", kappa_pres=kap_pres)
+                     leg0_pres="presidente_2018", leg1_pres="presidente_2022", kappa_pres=kap_pres,
+                     matriz_pres=T_bt_pres)
 
     # listas inscritas en 2023; peso dentro de la familia según 2019 (listas nuevas: promedio de su familia o igualitario)
     L23 = listas[listas["anio"] == 2023]
@@ -298,7 +329,14 @@ def backtest(S: pd.DataFrame, listas: pd.DataFrame, n: int) -> dict:
                            "curules_familias": {f: int(v) for f, v in zip(FAMILIA_IDS, fam_pred)}}
     elegido = min(metricas, key=lambda k: (round(metricas[k]["mae_pp"], 2), metricas[k]["error_curules_familias"]))
 
-    P, Lc, cur, ids = simular(reglas[elegido], (vol["nu"], vol["escala_t"]), estructura, n)
+    # calibración conformal: ¿cuánto habría que ensanchar la t de Student, ajustada solo con
+    # información previa a 2023, para que sus intervalos hubieran cubierto el resultado real al
+    # nivel nominal? Se aplica aquí (para reportar la cobertura YA corregida) y se traslada tal cual
+    # al pronóstico 2027 — ver calibrar_escala() para la justificación completa.
+    factor_calibracion = calibrar_escala(real, reglas[elegido], vol["nu"], vol["escala_t"], nivel=0.8)
+    escala_calibrada = vol["escala_t"] * factor_calibracion
+
+    P, Lc, cur, ids = simular(reglas[elegido], (vol["nu"], escala_calibrada), estructura, n)
     F = curules_por_familia(cur, ids)
     fam_det = []
     for k, f in enumerate(FAMILIA_IDS):
@@ -314,7 +352,8 @@ def backtest(S: pd.DataFrame, listas: pd.DataFrame, n: int) -> dict:
             "elegido": elegido, "cobertura_cuotas_80": float(np.mean(cob80)), "cobertura_cuotas_95": float(np.mean(cob95)),
             "cobertura_curules_80": float(np.mean([d["dentro_80"] for d in fam_det])),
             "cobertura_curules_95": float(np.mean([d["dentro_95"] for d in fam_det])), "familias": fam_det,
-            "matriz_usada": "camara_2018_2022" if T_bt is not None else None}
+            "matriz_usada": "camara_2018_2022" if T_bt is not None else None,
+            "factor_calibracion": factor_calibracion, "escala_calibrada": escala_calibrada}
 
 
 # ───────────────────────── pronóstico 2027 ─────────────────────────
@@ -327,7 +366,7 @@ def cuota_lista(eleccion: str, partido_cod: str) -> float:
     return float(fila["votos_lista"].iat[0] / validos)
 
 
-def pronostico(S: pd.DataFrame, listas: pd.DataFrame, n: int, elegido: str) -> dict:
+def pronostico(S: pd.DataFrame, listas: pd.DataFrame, n: int, elegido: str, factor_calibracion: float = 1.0) -> dict:
     vol = calibrar_volatilidad(S, [(2011, 2015), (2015, 2019), (2019, 2023)])
     kap = calibrar_kappa(S, "camara_2018", "camara_2022", "concejo_2019", "concejo_2023")
     kap_pres = (calibrar_kappa(S, "presidente_2018", "presidente_2022", "concejo_2019", "concejo_2023")
@@ -340,9 +379,14 @@ def pronostico(S: pd.DataFrame, listas: pd.DataFrame, n: int, elegido: str) -> d
     # Presidencial 2022→2026 (jun 2022, jun 2026) es la contraparte presidencial: ambas anteriores a
     # concejo_2027 (oct 2027), sin fuga de datos.
     T_fc, _ = cargar_matriz_transferencia("camara_2022_2026")
+    T_fc_pres, _ = cargar_matriz_transferencia("presidente_2022_2026")
     reglas = centros(S, "concejo_2023", "camara_2022", "camara_2026", kap_2027, matriz=T_fc,
-                     leg0_pres="presidente_2022", leg1_pres="presidente_2026", kappa_pres=kap_pres_2027)
-    ruido = (vol["nu"], vol["escala_t"])
+                     leg0_pres="presidente_2022", leg1_pres="presidente_2026", kappa_pres=kap_pres_2027,
+                     matriz_pres=T_fc_pres)
+    # mismo factor de calibración conformal hallado en el backtest (ver calibrar_escala): la
+    # evidencia de que la t de Student ajustada solo con información previa se queda corta para
+    # cubrir el resultado real se traslada al pronóstico, no solo se reporta y se ignora.
+    ruido = (vol["nu"], vol["escala_t"] * factor_calibracion)
     s23 = S.loc["concejo_2023", CATS].values.astype(float)
 
     L23 = listas[listas["anio"] == 2023]
@@ -382,6 +426,7 @@ def pronostico(S: pd.DataFrame, listas: pd.DataFrame, n: int, elegido: str) -> d
             "familias": fam_out, "listas": listas_out, "escenarios": escenarios,
             "blanco": resumen_distribucion(P[:, IDX["blanco"]]),
             "matriz_usada": "camara_2022_2026" if T_fc is not None else None,
+            "factor_calibracion": factor_calibracion, "escala_calibrada": ruido[1],
             "muestra": {"listas": ids, "curules": cur[muestra].astype(int).tolist()}}
 
 
@@ -438,8 +483,9 @@ def main() -> None:
     vp = bt["volatilidad_previa"]
     print(f"  → regla elegida: {bt['elegido']} · t(ν={vp['nu']:.1f}, escala={vp['escala_t']:.3f})")
     print(f"  cobertura cuotas 80%: {bt['cobertura_cuotas_80']:.0%} · curules 80%: {bt['cobertura_curules_80']:.0%} · 95%: {bt['cobertura_curules_95']:.0%}")
+    print(f"  calibración conformal: factor ×{bt['factor_calibracion']:.2f} → escala {bt['escala_calibrada']:.3f} (antes de recalibrar: {vp['escala_t']:.3f})")
     print("Pronóstico 2027…")
-    pr = pronostico(S, listas, n, bt["elegido"])
+    pr = pronostico(S, listas, n, bt["elegido"], bt["factor_calibracion"])
     upz, beta = proyeccion_upz(S, pr["centro_cuotas"])
     salida = {"generado": pd.Timestamp.now(tz="America/Bogota").isoformat(timespec="minutes"),
               "eleccion": C.ELECCION_2027, "n_simulaciones": n, "curules_repartidora": C.CURULES_REPARTIDORA,

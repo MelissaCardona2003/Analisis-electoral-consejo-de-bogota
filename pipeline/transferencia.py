@@ -54,6 +54,11 @@ PARES = {
     # el backtest necesita una matriz que, como ellas, solo use información anterior a 2023 — de
     # ahí Cámara 2018→2022, el mismo par que ya usa la regla de κ existente para ese propósito.
     "camara_2018_2022": ("camara_2018", "camara_2022"),
+    # análogo presidencial de los dos pares de arriba, misma lógica leak-free: 2018→2022 (ambas
+    # anteriores a concejo_2023) para el backtest, 2022→2026 (ambas anteriores a concejo_2027) para
+    # el pronóstico real. Ver `model.py::centros(..., matriz_pres=...)`.
+    "presidente_2018_2022": ("presidente_2018", "presidente_2022"),
+    "presidente_2022_2026": ("presidente_2022", "presidente_2026"),
 }
 
 

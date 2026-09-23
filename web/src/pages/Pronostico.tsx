@@ -12,6 +12,7 @@ const NOMBRE_ESCENARIO: Record<string, string> = {
   transferencia: 'Transferencia desde Cámara (κ)',
   transferencia_matriz: 'Matriz de transferencia (inferencia ecológica)',
   transferencia_presidencial: 'Transferencia desde Presidencial (κ)',
+  transferencia_matriz_presidencial: 'Matriz de transferencia presidencial (inferencia ecológica)',
   sin_lista_de_oviedo: 'Sin La Lista de Oviedo',
 }
 
