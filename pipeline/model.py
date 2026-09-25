@@ -37,7 +37,7 @@ NOMBRES_REGLA = {"persistencia": "Persistencia (repetir el último Concejo)",
                  "transferencia": "Transferencia logit desde Cámara (κ)",
                  "transferencia_matriz": "Matriz de transferencia (inferencia ecológica bayesiana)",
                  "transferencia_presidencial": "Transferencia logit desde Presidencial (κ)",
-                 "transferencia_matriz_presidencial": "Matriz de transferencia presidencial (inferencia ecológica bayesiana)"}
+                 "transferencia_matriz_presidencial": "Matriz Presidencial → Concejo del ciclo siguiente (inferencia ecológica bayesiana)"}
 rng = np.random.default_rng(C.SEED)
 
 
@@ -119,6 +119,15 @@ def calibrar_escala(real: np.ndarray, mu: np.ndarray, nu: float, escala: float, 
     return max(factor, 1.0)
 
 
+def cobertura_analitica(real: np.ndarray, mu: np.ndarray, nu: float, escala: float, nivel: float = 0.8) -> float:
+    """Fracción de categorías cuyo resultado real cae dentro del intervalo central ``nivel`` de la t de
+    Student (en escala logit), calculada de forma cerrada — sin simular, así que no consume números
+    aleatorios y no altera ninguna otra salida. Es la cobertura que ``calibrar_escala`` busca corregir:
+    se reporta ANTES de aplicar el factor para poder mostrar cuánto se quedaba corto el intervalo."""
+    q = stats.t.ppf(0.5 + nivel / 2, nu) * escala
+    return float(np.mean(np.abs(logit(real) - mu) <= q))
+
+
 def calibrar_kappa(S: pd.DataFrame, leg0: str, leg1: str, base: str, obj: str) -> dict:
     ok = [c for c in CATS if min(S.loc[e, c] for e in (leg0, leg1, base, obj)) >= ESTABLECIDA]
     x = logit(S.loc[leg1, ok]) - logit(S.loc[leg0, ok])
@@ -168,9 +177,22 @@ def centro_matriz(s: np.ndarray, T: np.ndarray) -> np.ndarray:
     return logit(normalizar(s @ T))
 
 
+def centro_matriz_cuotas(s: np.ndarray, T: np.ndarray) -> np.ndarray:
+    """Igual que ``centro_matriz`` pero devuelve cuotas (no logit): ``normalizar(s @ T)``."""
+    return normalizar(s @ T)
+
+
 def centros(S: pd.DataFrame, base: str, leg0: str, leg1: str, kappa: dict, matriz: np.ndarray | None = None,
             leg0_pres: str | None = None, leg1_pres: str | None = None, kappa_pres: dict | None = None,
-            matriz_pres: np.ndarray | None = None) -> dict[str, np.ndarray]:
+            matriz_pres: np.ndarray | None = None, pres_ref: str | None = None) -> dict[str, np.ndarray]:
+    """Reglas de centro que compiten en el backtest.
+
+    ``matriz_pres`` es el puente PRESIDENCIAL → CONCEJO del ciclo anterior (p. ej. presidente_2018 →
+    concejo_2019) y ``pres_ref`` la presidencial MÁS RECIENTE a la que se aplica (presidente_2022 en el
+    backtest de 2023; presidente_2026 en el pronóstico de 2027): la presidencial de un ciclo precede al
+    Concejo de ese ciclo unos 16 meses, así que su resultado, traducido con el puente aprendido en el
+    ciclo previo, es una lectura de "la tendencia del momento". Las dos deben ir juntas.
+    """
     s, c0, c1 = (S.loc[e, CATS].values.astype(float) for e in (base, leg0, leg1))
     elegibles = np.array([min(S.loc[leg0, c], S.loc[leg1, c], S.loc[base, c]) >= ESTABLECIDA for c in CATS])
     lofo = {f["categoria"]: f["kappa_sin_ella"] for f in kappa["familias"]}
@@ -190,7 +212,10 @@ def centros(S: pd.DataFrame, base: str, leg0: str, leg1: str, kappa: dict, matri
         k_p = np.array([np.clip(lofo_p.get(c, kappa_pres["kappa_mco"]), 0, 1) if elegibles_p[i] else 0.0 for i, c in enumerate(CATS)])
         out["transferencia_presidencial"] = logit(s) + k_p * (logit(c1p) - logit(c0p))
     if matriz_pres is not None:
-        out["transferencia_matriz_presidencial"] = centro_matriz(s, matriz_pres)
+        if pres_ref is None:
+            raise ValueError("matriz_pres requiere pres_ref: la presidencial reciente a la que se aplica el puente")
+        # NO se aplica sobre el Concejo anterior (`s`): el puente ya traduce presidencial → Concejo.
+        out["transferencia_matriz_presidencial"] = centro_matriz(S.loc[pres_ref, CATS].values.astype(float), matriz_pres)
     return out
 
 
@@ -298,10 +323,10 @@ def backtest(S: pd.DataFrame, listas: pd.DataFrame, n: int) -> dict:
     # leave-one-out). Para competir limpio contra las otras tres reglas, que solo usan información
     # anterior a 2023, se usa la matriz Cámara 2018→2022: el mismo par pre-2023 que ya usa `kap`.
     T_bt, _ = cargar_matriz_transferencia("camara_2018_2022")
-    T_bt_pres, _ = cargar_matriz_transferencia("presidente_2018_2022")
+    T_bt_pres, _ = cargar_matriz_transferencia("presidente_2018_concejo_2019")
     reglas = centros(S, "concejo_2019", "camara_2018", "camara_2022", kap, matriz=T_bt,
                      leg0_pres="presidente_2018", leg1_pres="presidente_2022", kappa_pres=kap_pres,
-                     matriz_pres=T_bt_pres)
+                     matriz_pres=T_bt_pres, pres_ref="presidente_2022")
 
     # listas inscritas en 2023; peso dentro de la familia según 2019 (listas nuevas: promedio de su familia o igualitario)
     L23 = listas[listas["anio"] == 2023]
@@ -353,7 +378,15 @@ def backtest(S: pd.DataFrame, listas: pd.DataFrame, n: int) -> dict:
             "cobertura_curules_80": float(np.mean([d["dentro_80"] for d in fam_det])),
             "cobertura_curules_95": float(np.mean([d["dentro_95"] for d in fam_det])), "familias": fam_det,
             "matriz_usada": "camara_2018_2022" if T_bt is not None else None,
-            "factor_calibracion": factor_calibracion, "escala_calibrada": escala_calibrada}
+            "factor_calibracion": factor_calibracion, "escala_calibrada": escala_calibrada,
+            # qué tan bien reproduce el puente presidencial → Concejo el ciclo en que se aprendió (2018→2019),
+            # frente a lo que erra en el ciclo siguiente (`metricas[...].mae_pp`): mide cuánto se traslada.
+            "puente_presidencial_mae_mismo_ciclo_pp": (
+                float(np.mean(np.abs(centro_matriz_cuotas(S.loc["presidente_2018", CATS].values.astype(float), T_bt_pres)
+                                     - S.loc["concejo_2019", CATS].values.astype(float))) * 100)
+                if T_bt_pres is not None else None),
+            "cobertura_cuotas_80_sin_calibrar": cobertura_analitica(real, reglas[elegido], vol["nu"], vol["escala_t"], 0.8),
+            "cobertura_cuotas_95_sin_calibrar": cobertura_analitica(real, reglas[elegido], vol["nu"], vol["escala_t"], 0.95)}
 
 
 # ───────────────────────── pronóstico 2027 ─────────────────────────
@@ -376,13 +409,15 @@ def pronostico(S: pd.DataFrame, listas: pd.DataFrame, n: int, elegido: str, fact
     kap_pres_2027 = {**kap_pres, "familias": []} if kap_pres is not None else None
     # el pronóstico usa la matriz Cámara 2022→2026 (no hay una que termine en 2027): mismo supuesto
     # que ya hace la regla `transferencia` de κ, que también traslada el cambio observado en Cámara.
-    # Presidencial 2022→2026 (jun 2022, jun 2026) es la contraparte presidencial: ambas anteriores a
-    # concejo_2027 (oct 2027), sin fuga de datos.
+    # Contraparte presidencial: el puente presidencial 2022 → Concejo 2023 (el ciclo más reciente ya
+    # cerrado) se aplica a la presidencial de 2026 (jun 2026, la "tendencia actual" antes del Concejo
+    # de oct 2027). Todo es anterior a concejo_2027: sin fuga de datos. Es el mismo protocolo del
+    # backtest, un ciclo atrás (puente 2018→2019 aplicado a la presidencial de 2022).
     T_fc, _ = cargar_matriz_transferencia("camara_2022_2026")
-    T_fc_pres, _ = cargar_matriz_transferencia("presidente_2022_2026")
+    T_fc_pres, _ = cargar_matriz_transferencia("presidente_2022_concejo_2023")
     reglas = centros(S, "concejo_2023", "camara_2022", "camara_2026", kap_2027, matriz=T_fc,
                      leg0_pres="presidente_2022", leg1_pres="presidente_2026", kappa_pres=kap_pres_2027,
-                     matriz_pres=T_fc_pres)
+                     matriz_pres=T_fc_pres, pres_ref="presidente_2026")
     # mismo factor de calibración conformal hallado en el backtest (ver calibrar_escala): la
     # evidencia de que la t de Student ajustada solo con información previa se queda corta para
     # cubrir el resultado real se traslada al pronóstico, no solo se reporta y se ignora.

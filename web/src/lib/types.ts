@@ -206,6 +206,11 @@ export interface Pronostico {
     matriz_usada: string | null
     factor_calibracion: number
     escala_calibrada: number
+    /** Fracción de las 10 categorías cuyo resultado real de 2023 caía dentro del rango nominal ANTES de ensanchar la escala. */
+    cobertura_cuotas_80_sin_calibrar?: number
+    cobertura_cuotas_95_sin_calibrar?: number
+    /** Error (pts) del puente presidencial → Concejo en el ciclo donde se aprendió (2018→2019): contraste con el error del ciclo siguiente. */
+    puente_presidencial_mae_mismo_ciclo_pp?: number | null
   }
 }
 

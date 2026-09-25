@@ -54,11 +54,17 @@ PARES = {
     # el backtest necesita una matriz que, como ellas, solo use información anterior a 2023 — de
     # ahí Cámara 2018→2022, el mismo par que ya usa la regla de κ existente para ese propósito.
     "camara_2018_2022": ("camara_2018", "camara_2022"),
-    # análogo presidencial de los dos pares de arriba, misma lógica leak-free: 2018→2022 (ambas
-    # anteriores a concejo_2023) para el backtest, 2022→2026 (ambas anteriores a concejo_2027) para
-    # el pronóstico real. Ver `model.py::centros(..., matriz_pres=...)`.
-    "presidente_2018_2022": ("presidente_2018", "presidente_2022"),
-    "presidente_2022_2026": ("presidente_2022", "presidente_2026"),
+    # Señal presidencial, diseño "ciclo a ciclo": la presidencial de un ciclo (mayo/junio) precede al
+    # Concejo del mismo ciclo (octubre del año siguiente, ~16 meses después). Se estima el puente
+    # presidencial → Concejo en el ciclo ANTERIOR y se aplica a la presidencial MÁS RECIENTE:
+    #   backtest 2023: puente presidente_2018 → concejo_2019, aplicado a presidente_2022
+    #   pronóstico 2027: puente presidente_2022 → concejo_2023, aplicado a presidente_2026
+    # En ambos casos todo lo usado es anterior a la elección que se predice (sin fuga de datos), y las
+    # presidenciales "actuales" solo entran al pronóstico, nunca al examen. Ver `model.py::centros`.
+    # (Un primer diseño trasladaba la matriz presidencial→presidencial al Concejo; se retiró por ser un
+    # puente frágil: casi ninguna familia lleva candidato propio en ambas presidenciales.)
+    "presidente_2018_concejo_2019": ("presidente_2018", "concejo_2019"),
+    "presidente_2022_concejo_2023": ("presidente_2022", "concejo_2023"),
 }
 
 
@@ -142,22 +148,36 @@ def resumen_matriz(idata, categorias: list[str] = CATEGORIAS) -> dict:
     }
 
 
-def main() -> None:
+def main(pares: list[str] | None = None) -> None:
+    """Estima las matrices. Con ``pares`` solo recalcula esos y conserva el resto de transferencia.json."""
     cat = pd.read_parquet(C.PROCESSED / "votos_puesto_categoria.parquet")
-    reporte = {}
-    for nombre, (origen, destino) in PARES.items():
+    destino_json = C.PROCESSED / "transferencia.json"
+    if pares:
+        desconocidos = [n for n in pares if n not in PARES]
+        if desconocidos:
+            raise SystemExit(f"Pares desconocidos: {desconocidos}. Disponibles: {list(PARES)}")
+        reporte = json.loads(destino_json.read_text(encoding="utf-8")) if destino_json.exists() else {}
+        seleccion = {n: PARES[n] for n in pares}
+    else:
+        reporte, seleccion = {}, PARES
+    for nombre, (origen, destino) in seleccion.items():
         R, Cc, puestos = preparar_par(cat, origen, destino)
-        print(f"{nombre}: {len(puestos)} puestos comunes con votos válidos en ambas elecciones")
+        print(f"{nombre}: {len(puestos)} puestos comunes con votos válidos en ambas elecciones", flush=True)
         idata = ajustar_transferencia(R, Cc)
         resumen = resumen_matriz(idata)
         resumen["n_puestos"] = len(puestos)
         reporte[nombre] = resumen
-        print(f"  kappa≈{resumen['kappa_media']:.1f} · ESS mínimo {resumen['ess_min']} · R-hat máximo {resumen['rhat_max']}")
+        print(f"  kappa≈{resumen['kappa_media']:.1f} · ESS mínimo {resumen['ess_min']} · R-hat máximo {resumen['rhat_max']}", flush=True)
         idata.to_netcdf(C.INTERIM / f"transferencia_{nombre}.nc")
+        # se guarda tras cada par: si un par posterior falla, no se pierde el trabajo ya hecho
+        destino_json.write_text(json.dumps(reporte, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    (C.PROCESSED / "transferencia.json").write_text(json.dumps(reporte, ensure_ascii=False, indent=2), encoding="utf-8")
     print("OK → data/processed/transferencia.json")
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+
+    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    ap.add_argument("--pares", nargs="+", help="solo estos pares (se fusionan con el JSON existente)")
+    main(ap.parse_args().pares)

@@ -3,16 +3,12 @@ import { useMemo, useRef, useState } from 'react'
 import { FloatingTip, TipRow, type TipState } from '../components/Tooltip'
 import { Callout, Card, CardTitle, Dot, SectionHeader, StatTile, famColor } from '../components/ui'
 import { compact, dec, num, pct } from '../lib/format'
+import { METODOS, nombreMetodo } from '../lib/metodos'
 import type { DistCurules, EscenariosIAOut, Familia, Meta, Pronostico as TP, Simulaciones } from '../lib/types'
 import { useJson, useMeta } from '../lib/useJson'
 
 const NOMBRE_ESCENARIO: Record<string, string> = {
-  persistencia: 'Persistencia',
-  swing_uniforme: 'Swing uniforme de Cámara 2026',
-  transferencia: 'Transferencia desde Cámara (κ)',
-  transferencia_matriz: 'Matriz de transferencia (inferencia ecológica)',
-  transferencia_presidencial: 'Transferencia desde Presidencial (κ)',
-  transferencia_matriz_presidencial: 'Matriz de transferencia presidencial (inferencia ecológica)',
+  ...Object.fromEntries(Object.entries(METODOS).map(([k, v]) => [k, v.nombre])),
   sin_lista_de_oviedo: 'Sin La Lista de Oviedo',
 }
 
@@ -325,7 +321,7 @@ function Escenarios({ p, familias }: { p: TP['pronostico']; familias: Familia[] 
     <>
       <CardTitle
         title="¿Y si…? Escenarios alternativos"
-        subtitle={`Curules medianas por familia bajo otras reglas. El escenario central (${p.nombre_regla.toLowerCase()}) fue el de menor error en el backtest.`}
+        subtitle={`Curules medianas por familia bajo otras reglas. El escenario central (${nombreMetodo(p.regla_central).toLowerCase()}) fue el de menor error en el backtest.`}
       />
       <div className="overflow-x-auto">
         <table className="tabular w-full min-w-[640px] text-[13px]">
@@ -457,7 +453,7 @@ function EscenariosIA({
         Esta hipótesis se tradujo a números concretos (a qué familias se mueve el voto, cuánto pesaría un movimiento nuevo) y se corrió por el mismo motor de Monte
         Carlo y cifra repartidora que el pronóstico de arriba — el reparto de curules no lo estimó la IA, lo calculó el mismo modelo. Pero los números de entrada sí
         son un supuesto externo, no una medición: no compitieron en el backtest de 2023 y no reemplazan el pronóstico central, que sigue siendo{' '}
-        {p.nombre_regla.toLowerCase()}.
+        {nombreMetodo(p.regla_central).toLowerCase()}.
       </Callout>
     </>
   )
@@ -491,7 +487,7 @@ function Backtest({ pro, famPorId, familias }: { pro: TP; famPorId: Record<strin
               {reglas.map(([k, m]) => (
                 <tr key={k} className="border-b border-hairline last:border-0">
                   <td className="py-2.5">
-                    {m.nombre}
+                    {nombreMetodo(k)}
                     {k === bt.elegido && <span className="ml-2 rounded-full bg-ink px-2 py-0.5 text-[11px] text-plane">elegida</span>}
                   </td>
                   <td className="py-2.5 text-right">{dec(m.mae_pp, 2)} pp</td>
